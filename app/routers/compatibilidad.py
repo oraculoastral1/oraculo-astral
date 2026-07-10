@@ -1,0 +1,59 @@
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+from app.services.carta_natal import calcular_carta_natal
+from app.services.compatibilidad import generar_lectura_compatibilidad
+
+router = APIRouter(prefix="/compatibilidad", tags=["Compatibilidad"])
+
+
+class DatosPersona(BaseModel):
+    nombre: str = Field(..., examples=["Ana"])
+    fecha: str = Field(..., examples=["1995-03-21"])
+    hora: str = Field(..., examples=["14:30"])
+    ciudad: str = Field(default="Medellín", examples=["Medellín"])
+
+
+class DatosParaComparar(BaseModel):
+    persona_a: DatosPersona
+    persona_b: DatosPersona
+
+
+@router.post("/comparar")
+def comparar(datos: DatosParaComparar):
+    """
+    Calcula las cartas natales de dos personas, compara sus planetas entre sí
+    (sinastría), y genera una lectura de compatibilidad fusionada por IA.
+    """
+    try:
+        carta_a = calcular_carta_natal(
+            fecha=datos.persona_a.fecha, hora=datos.persona_a.hora, ciudad=datos.persona_a.ciudad
+        )
+        carta_b = calcular_carta_natal(
+            fecha=datos.persona_b.fecha, hora=datos.persona_b.hora, ciudad=datos.persona_b.ciudad
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        resultado = generar_lectura_compatibilidad(
+            nombre_a=datos.persona_a.nombre, carta_a=carta_a,
+            nombre_b=datos.persona_b.nombre, carta_b=carta_b,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        f"{datos.persona_a.nombre}_resumen": {
+            "sol": carta_a["planetas"]["Sol"]["signo"],
+            "luna": carta_a["planetas"]["Luna"]["signo"],
+            "ascendente": carta_a["ascendente"]["signo"],
+        },
+        f"{datos.persona_b.nombre}_resumen": {
+            "sol": carta_b["planetas"]["Sol"]["signo"],
+            "luna": carta_b["planetas"]["Luna"]["signo"],
+            "ascendente": carta_b["ascendente"]["signo"],
+        },
+        "aspectos_cruzados": resultado["aspectos_cruzados"],
+        "lectura": resultado["lectura"],
+    }
