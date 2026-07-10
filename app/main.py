@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import carta_natal, lectura_diaria, suenos
+from app.routers import carta_natal, lectura_diaria, suenos, audio
 
 app = FastAPI(
     title="Oráculo Astral · API",
@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(carta_natal.router)
 app.include_router(lectura_diaria.router)
 app.include_router(suenos.router)
+app.include_router(audio.router)
 
 
 @app.get("/salud")
