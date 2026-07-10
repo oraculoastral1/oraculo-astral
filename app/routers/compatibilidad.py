@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel, Field
 
 from app.services.carta_natal import calcular_carta_natal
 from app.services.compatibilidad import generar_lectura_compatibilidad
 from app.services.suscripciones import tiene_premium_activo
+from app.services.auth import verificar_token
 
 router = APIRouter(prefix="/compatibilidad", tags=["Compatibilidad"])
 
@@ -22,12 +23,17 @@ class DatosParaComparar(BaseModel):
 
 
 @router.post("/comparar")
-def comparar(datos: DatosParaComparar):
+def comparar(datos: DatosParaComparar, x_access_token: str = Header(None)):
     """
     Calcula las cartas natales de dos personas, compara sus planetas entre sí
     (sinastría), y genera una lectura de compatibilidad fusionada por IA.
-    Requiere premium.
+    Requiere identidad verificada + premium.
     """
+    try:
+        verificar_token(datos.usuario_id, x_access_token)
+    except RuntimeError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
     if not tiene_premium_activo(datos.usuario_id):
         raise HTTPException(
             status_code=402,

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel, Field
 
 from app.services.carta_natal import calcular_carta_natal
 from app.services.lectura_diaria import generar_lectura_diaria
 from app.services.historial import guardar_lectura
+from app.services.auth import verificar_token
 
 router = APIRouter(prefix="/lectura", tags=["Lectura Diaria"])
 
@@ -19,12 +20,18 @@ class DatosParaLectura(BaseModel):
 
 
 @router.post("/diaria")
-def lectura_diaria(datos: DatosParaLectura):
+def lectura_diaria(datos: DatosParaLectura, x_access_token: str = Header(None)):
     """
     Calcula la carta natal y genera la lectura diaria completa:
     astrología + numerología + tarot, fusionadas por IA en un solo mensaje.
     La lectura queda guardada automáticamente en el historial de la persona.
+    Requiere el token de acceso de esa persona.
     """
+    try:
+        verificar_token(datos.usuario_id, x_access_token)
+    except RuntimeError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
     try:
         carta = calcular_carta_natal(fecha=datos.fecha, hora=datos.hora, ciudad=datos.ciudad)
     except ValueError as e:
