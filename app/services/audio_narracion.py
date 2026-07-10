@@ -23,7 +23,7 @@ def narrar_texto(texto: str, voz_id: str = VOZ_ID_POR_DEFECTO) -> bytes:
     Requiere la variable de entorno ELEVENLABS_API_KEY (gratis en elevenlabs.io).
     Devuelve los bytes crudos del archivo mp3.
     """
-    api_key = os.environ.get("ELEVENLABS_API_KEY")
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError(
             "Falta configurar ELEVENLABS_API_KEY en las variables de entorno del servidor."
@@ -47,5 +47,10 @@ def narrar_texto(texto: str, voz_id: str = VOZ_ID_POR_DEFECTO) -> bytes:
         },
         timeout=60,
     )
-    respuesta.raise_for_status()
+    if not respuesta.ok:
+        # ElevenLabs manda el motivo real del error en el cuerpo de la respuesta —
+        # lo mostramos completo en vez de solo el código genérico.
+        raise RuntimeError(
+            f"ElevenLabs rechazó la petición (código {respuesta.status_code}): {respuesta.text}"
+        )
     return respuesta.content
