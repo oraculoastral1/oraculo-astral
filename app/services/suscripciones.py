@@ -134,3 +134,9 @@ def obtener_estado(usuario_id: str) -> dict:
             fila["estado"] = "vencida"
 
     return fila
+
+
+def tiene_premium_activo(usuario_id: str) -> bool:
+    """Revisa rápido si una persona tiene el plan premium activo ahora mismo."""
+    estado = obtener_estado(usuario_id)
+    return estado.get("plan") == "premium" and estado.get("estado") == "activa"
