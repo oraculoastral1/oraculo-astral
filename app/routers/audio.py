@@ -17,8 +17,8 @@ def narrar(datos: TextoParaNarrar):
     """Convierte cualquier texto en audio narrado (mp3)."""
     try:
         audio_bytes = narrar_texto(datos.texto)
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al narrar el audio: {e}")
 
     return Response(content=audio_bytes, media_type="audio/mpeg")
 
@@ -43,7 +43,7 @@ def lectura_diaria_narrada(datos: DatosParaLecturaNarrada):
     try:
         resultado = generar_lectura_diaria(fecha_nacimiento=datos.fecha, carta_natal=carta)
         audio_bytes = narrar_texto(resultado["lectura"])
-    except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar la lectura narrada: {e}")
 
     return Response(content=audio_bytes, media_type="audio/mpeg")
