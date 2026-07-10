@@ -141,7 +141,7 @@ def calcular_carta_natal(
     aspectos = _calcular_aspectos(posiciones)
 
     for datos_planeta in posiciones.values():
-        datos_planeta.pop("_longitud", None)
+        datos_planeta["longitud"] = datos_planeta.pop("_longitud", None)
 
     return {
         "lugar": nombre_lugar,
