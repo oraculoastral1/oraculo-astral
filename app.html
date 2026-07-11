@@ -313,13 +313,28 @@
     <h1 class="wizard-titulo">¿En qué ciudad naciste?</h1>
     <input type="text" id="ob-ciudad" class="input-wizard" list="lista-ciudades" placeholder="Ej: Medellín">
     <datalist id="lista-ciudades"></datalist>
-    <button class="btn btn-oro btn-shimmer" onclick="iniciarSesion()">Revelar mi cielo</button>
+    <button class="btn btn-oro btn-shimmer" onclick="completarRegistro()">Revelar mi cielo</button>
     <p style="font-size:.7rem;color:var(--texto-suave);text-align:center;margin-top:1.1rem">
       Al continuar, aceptas nuestra
       <a href="privacidad.html" style="color:var(--oro-claro)">Política de Privacidad</a>
       y
       <a href="terminos.html" style="color:var(--oro-claro)">Términos de Servicio</a>.
     </p>
+  </div>
+</div>
+
+<!-- Pantalla de recuperación de cuenta -->
+<div id="pantalla-recuperacion" class="wrap wizard-wrap oculto">
+  <div class="orbe orbe-1"></div>
+  <div class="orbe orbe-2"></div>
+  <div class="paso-wizard activo" style="max-width:420px">
+    <span class="eyebrow centro">Ya te conocemos</span>
+    <h1 class="wizard-titulo">Ya existe una cuenta con este correo</h1>
+    <p class="wizard-nota" id="recuperacion-mensaje">Te enviamos un código de 6 dígitos a tu correo — revisa tu bandeja de entrada (y spam, por si acaso).</p>
+    <input type="text" id="recuperacion-codigo" class="input-wizard" placeholder="000000" maxlength="6" inputmode="numeric" style="letter-spacing:.5em;text-align:center">
+    <div id="recuperacion-error" class="error-msg oculto"></div>
+    <button class="btn btn-oro btn-shimmer" onclick="verificarCodigoRecuperacion()">Verificar código</button>
+    <button class="link-sutil" style="margin-top:1rem" onclick="reenviarCodigoRecuperacion()">Reenviar código</button>
   </div>
 </div>
 
@@ -480,6 +495,8 @@ cargarCiudades();
 // ---------- Wizard de bienvenida ----------
 let wizardPasoActual = 0;
 const WIZARD_TOTAL_PASOS = 5;
+let tokenActual = null;      // token obtenido (nuevo registro o recuperación)
+let correoEnProceso = null;  // correo que se está registrando/recuperando
 
 function wizardIrAPaso(n) {
   wizardPasoActual = n;
@@ -495,11 +512,14 @@ function wizardIrAPaso(n) {
   if (primerInput) setTimeout(function() { primerInput.focus(); }, 150);
 }
 
-function wizardSiguiente(pasoActual) {
+async function wizardSiguiente(pasoActual) {
   if (pasoActual === 0) {
     const nombre = document.getElementById("ob-nombre").value.trim();
     document.getElementById("saludo-nombre").textContent = nombre || "viajera";
+    wizardIrAPaso(1);
+    return;
   }
+
   if (pasoActual === 1) {
     const correo = document.getElementById("ob-correo").value.trim();
     const errorEl = document.getElementById("ob-error");
@@ -509,7 +529,43 @@ function wizardSiguiente(pasoActual) {
       return;
     }
     errorEl.classList.add("oculto");
+
+    const boton = document.querySelector('.paso-wizard[data-paso="1"] button');
+    boton.disabled = true;
+    boton.textContent = "Un momento…";
+
+    try {
+      const r = await fetch(API + "/auth/generar-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuario_id: correo }),
+      });
+
+      if (r.status === 409) {
+        // Ya existe una cuenta con este correo -> flujo de recuperación
+        correoEnProceso = correo;
+        await mostrarPantallaRecuperacion();
+        boton.disabled = false;
+        boton.textContent = "Continuar";
+        return;
+      }
+      if (!r.ok) throw new Error("No se pudo crear tu sesión. Intenta de nuevo.");
+
+      const datos = await r.json();
+      tokenActual = datos.token;
+      correoEnProceso = correo;
+      boton.disabled = false;
+      boton.textContent = "Continuar";
+      wizardIrAPaso(2);
+    } catch (e) {
+      boton.disabled = false;
+      boton.textContent = "Continuar";
+      errorEl.textContent = e.message || "Algo salió mal. Intenta de nuevo.";
+      errorEl.classList.remove("oculto");
+    }
+    return;
   }
+
   if (pasoActual === 2 && !document.getElementById("ob-fecha").value) return;
   if (pasoActual === 3 && !document.getElementById("ob-hora").value) return;
 
@@ -531,6 +587,64 @@ function alternarHoraDesconocida() {
   }
 }
 
+// ---------- Recuperación de cuenta ----------
+async function mostrarPantallaRecuperacion() {
+  document.getElementById("pantalla-onboarding").classList.add("oculto");
+  document.getElementById("pantalla-recuperacion").classList.remove("oculto");
+  document.getElementById("recuperacion-mensaje").textContent =
+    "Enviando un código a " + correoEnProceso + "…";
+
+  try {
+    await fetch(API + "/auth/solicitar-recuperacion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usuario_id: correoEnProceso }),
+    });
+    document.getElementById("recuperacion-mensaje").textContent =
+      "Te enviamos un código de 6 dígitos a " + correoEnProceso + " — revisa tu bandeja de entrada (y spam, por si acaso).";
+  } catch (e) {
+    document.getElementById("recuperacion-mensaje").textContent =
+      "No se pudo enviar el código. Toca \"Reenviar código\" para intentar de nuevo.";
+  }
+}
+
+async function reenviarCodigoRecuperacion() {
+  await mostrarPantallaRecuperacion();
+}
+
+async function verificarCodigoRecuperacion() {
+  const codigo = document.getElementById("recuperacion-codigo").value.trim();
+  const errorEl = document.getElementById("recuperacion-error");
+  errorEl.classList.add("oculto");
+
+  if (!codigo || codigo.length !== 6) {
+    errorEl.textContent = "Escribe el código de 6 dígitos que te llegó por correo.";
+    errorEl.classList.remove("oculto");
+    return;
+  }
+
+  try {
+    const r = await fetch(API + "/auth/verificar-recuperacion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usuario_id: correoEnProceso, codigo: codigo }),
+    });
+    if (!r.ok) {
+      const detalle = (await r.json()).detail || "Código incorrecto.";
+      throw new Error(detalle);
+    }
+    const datos = await r.json();
+    tokenActual = datos.token;
+
+    document.getElementById("pantalla-recuperacion").classList.add("oculto");
+    document.getElementById("pantalla-onboarding").classList.remove("oculto");
+    wizardIrAPaso(2); // sigue pidiendo fecha/hora/ciudad para completar la sesión
+  } catch (e) {
+    errorEl.textContent = e.message;
+    errorEl.classList.remove("oculto");
+  }
+}
+
 const FRASES_REVELACION = [
   "Consultando tu cielo…",
   "Calculando la posición de tus planetas…",
@@ -538,19 +652,21 @@ const FRASES_REVELACION = [
   "Encontrando tu Sol y tu Luna…",
 ];
 
-async function iniciarSesion() {
+async function completarRegistro() {
   const nombre = document.getElementById("ob-nombre").value.trim();
-  const correo = document.getElementById("ob-correo").value.trim();
   const fecha = document.getElementById("ob-fecha").value;
   const hora = document.getElementById("ob-hora").value;
   const ciudad = document.getElementById("ob-ciudad").value.trim();
 
-  if (!correo || !fecha || !hora || !ciudad) {
-    wizardIrAPaso(!correo ? 1 : !fecha ? 2 : !hora ? 3 : 4);
+  if (!tokenActual || !correoEnProceso) {
+    wizardIrAPaso(1);
+    return;
+  }
+  if (!fecha || !hora || !ciudad) {
+    wizardIrAPaso(!fecha ? 2 : !hora ? 3 : 4);
     return;
   }
 
-  // Mostrar la pantalla de revelación con frases rotando
   document.getElementById("pantalla-onboarding").classList.add("oculto");
   const pantallaRev = document.getElementById("pantalla-revelacion");
   pantallaRev.classList.remove("oculto");
@@ -561,34 +677,16 @@ async function iniciarSesion() {
     textoRev.textContent = FRASES_REVELACION[indiceFrase];
   }, 1100);
 
-  try {
-    const r = await fetch(API + "/auth/generar-token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ usuario_id: correo }),
-    });
-    if (!r.ok) throw new Error("No se pudo crear tu sesión.");
-    const datos = await r.json();
+  guardarSesion(correoEnProceso, tokenActual, { fecha: fecha, hora: hora, ciudad: ciudad }, nombre);
 
-    guardarSesion(correo, datos.token, { fecha: fecha, hora: hora, ciudad: ciudad }, nombre);
+  // Dejamos ver la animación al menos un momento, para que se sienta como un ritual
+  await new Promise(function(resolve) { setTimeout(resolve, 2200); });
 
-    // Dejamos ver la animación al menos un momento, para que se sienta como un ritual
-    await new Promise(function(resolve) { setTimeout(resolve, 2200); });
-
-    clearInterval(intervaloFrases);
-    pantallaRev.classList.add("oculto");
-    document.getElementById("pantalla-app").classList.remove("oculto");
-    document.getElementById("btn-cambiar-cuenta").classList.remove("oculto");
-    cambiarTab("hoy");
-  } catch (e) {
-    clearInterval(intervaloFrases);
-    pantallaRev.classList.add("oculto");
-    document.getElementById("pantalla-onboarding").classList.remove("oculto");
-    wizardIrAPaso(4);
-    const errorEl = document.getElementById("ob-error");
-    errorEl.textContent = e.message || "Algo salió mal. Intenta de nuevo.";
-    errorEl.classList.remove("oculto");
-  }
+  clearInterval(intervaloFrases);
+  pantallaRev.classList.add("oculto");
+  document.getElementById("pantalla-app").classList.remove("oculto");
+  document.getElementById("btn-cambiar-cuenta").classList.remove("oculto");
+  cambiarTab("hoy");
 }
 
 function cambiarTab(nombre) {
