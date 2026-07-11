@@ -68,6 +68,7 @@ def lectura_diaria(datos: DatosParaLectura, x_access_token: str = Header(None)):
         },
         "numerologia": resultado["numerologia"],
         "tarot": resultado["tarot"],
+        "transitos": resultado["transitos"],
         "lectura": resultado["lectura"],
         "guardado_en_historial": guardado_ok,
         "error_guardado": error_guardado,
