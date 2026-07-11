@@ -6,12 +6,13 @@ from app.services.carta_natal import calcular_carta_natal
 from app.services.lectura_diaria import generar_lectura_diaria
 from app.services.suscripciones import tiene_premium_activo
 from app.services.auth import verificar_token
+from app.services.limites import verificar_y_registrar_uso
 
 router = APIRouter(prefix="/audio", tags=["Audio Narrado"])
 
 
 def _exigir_identidad_y_premium(usuario_id: str, token: str | None) -> None:
-    """Primero confirma que es quien dice ser, luego que tiene premium."""
+    """Primero confirma que es quien dice ser, luego que tiene premium, luego que no pasó su límite."""
     try:
         verificar_token(usuario_id, token)
     except RuntimeError as e:
@@ -22,6 +23,11 @@ def _exigir_identidad_y_premium(usuario_id: str, token: str | None) -> None:
             status_code=402,
             detail="El audio narrado es una función premium. Esta persona no tiene una suscripción activa.",
         )
+
+    try:
+        verificar_y_registrar_uso(usuario_id, "audio")
+    except RuntimeError as e:
+        raise HTTPException(status_code=429, detail=str(e))
 
 
 class TextoParaNarrar(BaseModel):

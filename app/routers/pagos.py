@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Header
 from pydantic import BaseModel, Field
 
-from app.services.pagos_wompi import generar_link_pago, procesar_webhook as procesar_webhook_wompi
+from app.services.pagos_wompi import generar_link_pago, procesar_webhook as procesar_webhook_wompi, verificar_pago_manualmente
 from app.services.suscripciones import obtener_estado
 from app.services.auth import verificar_token
 
@@ -56,5 +56,23 @@ def estado_suscripcion(usuario_id: str, x_access_token: str = Header(None)):
 
     try:
         return obtener_estado(usuario_id)
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/wompi/verificar/{usuario_id}")
+def verificar_pago(usuario_id: str, x_access_token: str = Header(None)):
+    """
+    Respaldo manual: consulta directo con Wompi si un pago pendiente ya se
+    aprobó, para cuando el aviso automático (webhook) no llegó por algún
+    motivo de red. Si el pago está aprobado, activa el premium en el momento.
+    """
+    try:
+        verificar_token(usuario_id, x_access_token)
+    except RuntimeError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    try:
+        return verificar_pago_manualmente(usuario_id)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))

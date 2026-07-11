@@ -6,6 +6,7 @@ from app.services.ciudades import buscar_ciudad
 from app.services.retorno_solar import generar_lectura_retorno_solar
 from app.services.suscripciones import tiene_premium_activo
 from app.services.auth import verificar_token
+from app.services.limites import verificar_y_registrar_uso
 
 router = APIRouter(prefix="/retorno-solar", tags=["Retorno Solar"])
 
@@ -35,6 +36,11 @@ def generar_retorno_solar(datos: DatosRetornoSolar, x_access_token: str = Header
             status_code=402,
             detail="El retorno solar es una función premium. Esta persona no tiene una suscripción activa.",
         )
+
+    try:
+        verificar_y_registrar_uso(datos.usuario_id, "retorno_solar")
+    except RuntimeError as e:
+        raise HTTPException(status_code=429, detail=str(e))
 
     try:
         carta = calcular_carta_natal(fecha=datos.fecha, hora=datos.hora, ciudad=datos.ciudad)

@@ -5,6 +5,7 @@ from app.services.carta_natal import calcular_carta_natal
 from app.services.oraculo_chat import responder_pregunta
 from app.services.suscripciones import tiene_premium_activo
 from app.services.auth import verificar_token
+from app.services.limites import verificar_y_registrar_uso
 
 router = APIRouter(prefix="/oraculo", tags=["Pregúntale al Oráculo"])
 
@@ -39,6 +40,11 @@ def preguntar(datos: DatosPregunta, x_access_token: str = Header(None)):
             status_code=402,
             detail="Pregúntale al oráculo es una función premium. Esta persona no tiene una suscripción activa.",
         )
+
+    try:
+        verificar_y_registrar_uso(datos.usuario_id, "oraculo_chat")
+    except RuntimeError as e:
+        raise HTTPException(status_code=429, detail=str(e))
 
     try:
         carta = calcular_carta_natal(fecha=datos.fecha, hora=datos.hora, ciudad=datos.ciudad)

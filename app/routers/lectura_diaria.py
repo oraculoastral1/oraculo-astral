@@ -5,6 +5,8 @@ from app.services.carta_natal import calcular_carta_natal
 from app.services.lectura_diaria import generar_lectura_diaria
 from app.services.historial import guardar_lectura
 from app.services.auth import verificar_token
+from app.services.limites import verificar_y_registrar_uso
+from app.services.perfiles import guardar_perfil
 
 router = APIRouter(prefix="/lectura", tags=["Lectura Diaria"])
 
@@ -14,6 +16,7 @@ class DatosParaLectura(BaseModel):
         ..., examples=["ana@correo.com"],
         description="Identificador de la persona (por ahora, su correo o cualquier texto único)",
     )
+    nombre: str = Field(default="", examples=["Ana"])
     fecha: str = Field(..., examples=["1995-03-21"])
     hora: str = Field(..., examples=["14:30"])
     ciudad: str = Field(default="Medellín", examples=["Medellín"])
@@ -25,12 +28,17 @@ def lectura_diaria(datos: DatosParaLectura, x_access_token: str = Header(None)):
     Calcula la carta natal y genera la lectura diaria completa:
     astrología + numerología + tarot, fusionadas por IA en un solo mensaje.
     La lectura queda guardada automáticamente en el historial de la persona.
-    Requiere el token de acceso de esa persona.
+    Requiere el token de acceso de esa persona. Límite: 5 por día.
     """
     try:
         verificar_token(datos.usuario_id, x_access_token)
     except RuntimeError as e:
         raise HTTPException(status_code=401, detail=str(e))
+
+    try:
+        verificar_y_registrar_uso(datos.usuario_id, "lectura_diaria")
+    except RuntimeError as e:
+        raise HTTPException(status_code=429, detail=str(e))
 
     try:
         carta = calcular_carta_natal(fecha=datos.fecha, hora=datos.hora, ciudad=datos.ciudad)
@@ -55,10 +63,13 @@ def lectura_diaria(datos: DatosParaLectura, x_access_token: str = Header(None)):
             lectura_texto=resultado["lectura"],
         )
     except RuntimeError as e:
-        # No queremos que un fallo al guardar le arruine la lectura a la persona —
-        # se la entregamos igual, pero avisamos que no quedó en el historial.
         guardado_ok = False
         error_guardado = str(e)
+
+    try:
+        guardar_perfil(datos.usuario_id, datos.nombre, datos.fecha, datos.hora, datos.ciudad)
+    except RuntimeError:
+        pass  # el perfil es solo para el recordatorio diario — no debe romper la lectura si falla
 
     return {
         "carta_natal_resumen": {

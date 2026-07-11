@@ -5,6 +5,7 @@ from app.services.carta_natal import calcular_carta_natal
 from app.services.compatibilidad import generar_lectura_compatibilidad
 from app.services.suscripciones import tiene_premium_activo
 from app.services.auth import verificar_token
+from app.services.limites import verificar_y_registrar_uso
 
 router = APIRouter(prefix="/compatibilidad", tags=["Compatibilidad"])
 
@@ -39,6 +40,11 @@ def comparar(datos: DatosParaComparar, x_access_token: str = Header(None)):
             status_code=402,
             detail="Comparar compatibilidad es una función premium. Esta persona no tiene una suscripción activa.",
         )
+
+    try:
+        verificar_y_registrar_uso(datos.usuario_id, "compatibilidad")
+    except RuntimeError as e:
+        raise HTTPException(status_code=429, detail=str(e))
     try:
         carta_a = calcular_carta_natal(
             fecha=datos.persona_a.fecha, hora=datos.persona_a.hora, ciudad=datos.persona_a.ciudad

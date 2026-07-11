@@ -3,12 +3,14 @@ from pydantic import BaseModel, Field
 
 from app.services.auth import generar_token, existe_token
 from app.services.recuperacion import generar_y_enviar_codigo, verificar_codigo
+from app.services.correos import enviar_correo_bienvenida
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
 
 class DatosGenerarToken(BaseModel):
     usuario_id: str = Field(..., examples=["ana@correo.com"])
+    nombre: str = Field(default="", examples=["Ana"])
 
 
 @router.post("/generar-token")
@@ -29,6 +31,12 @@ def generar_token_acceso(datos: DatosGenerarToken):
                        "puede generar un token nuevo sin verificar que el correo es tuyo.",
             )
         token = generar_token(datos.usuario_id)
+
+        try:
+            enviar_correo_bienvenida(datos.usuario_id, datos.nombre)
+        except RuntimeError:
+            pass  # el correo de bienvenida es un extra — no debe romper el registro si falla
+
         return {
             "token": token,
             "aviso": "Guarda este token — no se puede volver a mostrar. Todos los demás "
