@@ -16,18 +16,19 @@ router = APIRouter(prefix="/pagos", tags=["Pagos y Suscripción"])
 class DatosCheckoutWompi(BaseModel):
     usuario_id: str = Field(..., examples=["ana@correo.com"])
     url_redireccion: str = Field(..., examples=["https://tu-frontend.com/pago-completado"])
+    plan: str = Field(default="mensual", examples=["mensual"], description="'mensual' o 'anual'")
 
 
 @router.post("/wompi/crear-link")
 def wompi_crear_link(datos: DatosCheckoutWompi, x_access_token: str = Header(None)):
-    """Genera el link de pago de Wompi (PSE, Nequi, tarjetas) por 30 días de premium."""
+    """Genera el link de pago de Wompi (PSE, Nequi, tarjetas) — plan mensual (30 días) o anual (365 días)."""
     try:
         verificar_token(datos.usuario_id, x_access_token)
     except RuntimeError as e:
         raise HTTPException(status_code=401, detail=str(e))
 
     try:
-        return generar_link_pago(datos.usuario_id, datos.url_redireccion)
+        return generar_link_pago(datos.usuario_id, datos.url_redireccion, plan=datos.plan)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
