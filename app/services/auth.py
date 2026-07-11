@@ -59,6 +59,19 @@ def generar_token(usuario_id: str) -> str:
     return token
 
 
+def existe_token(usuario_id: str) -> bool:
+    """Revisa si ya existe una cuenta (token) para este usuario_id."""
+    url, headers = _config_supabase()
+
+    respuesta = requests.get(
+        url, headers=headers, params={"usuario_id": f"eq.{usuario_id}"}, timeout=15
+    )
+    if not respuesta.ok:
+        raise RuntimeError(f"No se pudo verificar la cuenta: {respuesta.text}")
+
+    return bool(respuesta.json())
+
+
 def verificar_token(usuario_id: str, token: str | None) -> None:
     """
     Confirma que el token presentado sea el correcto para ese usuario_id.
