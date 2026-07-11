@@ -56,6 +56,20 @@ def registrar_pago_pendiente(usuario_id: str, referencia_pago: str, proveedor: s
         raise RuntimeError(f"No se pudo registrar el pago pendiente: {respuesta.text}")
 
 
+def buscar_ultima_referencia_pendiente(usuario_id: str) -> str | None:
+    """Encuentra la referencia del último pago pendiente de una persona (para el botón 'Verificar mi pago')."""
+    url, headers = _config_supabase()
+    respuesta = requests.get(
+        url, headers=headers,
+        params={"usuario_id": f"eq.{usuario_id}", "estado": "eq.pendiente"},
+        timeout=15,
+    )
+    if not respuesta.ok:
+        raise RuntimeError(f"No se pudo buscar el pago pendiente: {respuesta.text}")
+    filas = respuesta.json()
+    return filas[0]["referencia_pago"] if filas else None
+
+
 def buscar_pago_por_referencia(referencia_pago: str) -> dict | None:
     """Encuentra qué usuario_id y cuántos días de plan corresponden a una referencia de pago."""
     url, headers = _config_supabase()

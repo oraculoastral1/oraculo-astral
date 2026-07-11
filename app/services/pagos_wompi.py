@@ -70,6 +70,45 @@ def generar_link_pago(usuario_id: str, url_redireccion: str, plan: str = "mensua
     return {"url_pago": WOMPI_CHECKOUT_URL + parametros, "referencia": referencia}
 
 
+import requests as _requests_wompi_check
+
+
+def verificar_pago_manualmente(usuario_id: str) -> dict:
+    """
+    Respaldo manual para cuando el aviso automático de Wompi (webhook) no
+    llega por cualquier motivo de red. Busca el último pago pendiente de
+    la persona, le pregunta a Wompi directamente cómo quedó, y si fue
+    aprobado, activa el premium igual que lo haría el webhook.
+    """
+    from app.services.suscripciones import buscar_ultima_referencia_pendiente
+
+    referencia = buscar_ultima_referencia_pendiente(usuario_id)
+    if not referencia:
+        return {"encontrado": False, "mensaje": "No hay ningún pago pendiente reciente para verificar."}
+
+    respuesta = _requests_wompi_check.get(
+        f"https://production.wompi.co/v1/transactions?reference={referencia}", timeout=15
+    )
+    if not respuesta.ok:
+        raise RuntimeError("No se pudo consultar el estado del pago con Wompi en este momento.")
+
+    datos = respuesta.json().get("data", [])
+    if not datos:
+        return {"encontrado": False, "mensaje": "Wompi todavía no registra ninguna transacción con esa referencia."}
+
+    transaccion = datos[0]
+    if transaccion["status"] == "APPROVED":
+        pago = buscar_pago_por_referencia(referencia)
+        if pago:
+            activar_premium(
+                pago["usuario_id"], proveedor="wompi",
+                referencia_pago=transaccion["id"], dias_validez=pago["dias_plan"],
+            )
+        return {"encontrado": True, "estado": "APPROVED", "mensaje": "¡Tu pago se confirmó y tu premium ya está activo!"}
+
+    return {"encontrado": True, "estado": transaccion["status"], "mensaje": f"El pago sigue en estado: {transaccion['status']}."}
+
+
 def _verificar_checksum(datos_evento: dict, secreto_eventos: str) -> bool:
     """Reconstruye el checksum del evento y lo compara con el que envió Wompi."""
     propiedades = datos_evento["signature"]["properties"]
