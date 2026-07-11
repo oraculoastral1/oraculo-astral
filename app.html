@@ -4,6 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Oráculo Astral — Tu guía diaria</title>
+
+<!-- Favicon y PWA -->
+<link rel="icon" type="image/x-icon" href="iconos/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="iconos/favicon-32.png">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#070510">
+
+<!-- Vista previa al compartir (Open Graph) -->
+<meta property="og:title" content="Oráculo Astral — Tu guía diaria">
+<meta property="og:description" content="Tu carta natal real, leída cada mañana.">
+<meta property="og:image" content="https://oraculoastral1.github.io/oraculo-astral/iconos/og-image.png">
+<meta property="og:url" content="https://oraculoastral1.github.io/oraculo-astral/app.html">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<!-- Meta Pixel — reemplaza TU_PIXEL_ID cuando tengas tu Pixel de Facebook/Instagram creado -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', 'TU_PIXEL_ID');
+fbq('track', 'PageView');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -324,6 +353,7 @@
 <header class="top">
   <div class="logo">Oráculo <span>Astral</span></div>
   <div class="fila" style="gap:1.1rem;align-items:center">
+    <button class="link-sutil oculto" id="btn-ayuda" onclick="document.getElementById('modal-ayuda').classList.remove('oculto')">Ayuda</button>
     <button class="link-sutil oculto" id="btn-soporte" onclick="abrirModalSoporte()">Soporte</button>
     <button class="link-sutil oculto" id="btn-cambiar-cuenta" onclick="cerrarSesion()">Cambiar de cuenta</button>
   </div>
@@ -443,6 +473,48 @@
     <button class="btn btn-linea" id="btn-compartir-nativo" onclick="compartirTarjetaNativo()">Compartir</button>
   </div>
   <button class="modal-compartir-cerrar" onclick="cerrarModalCompartir()">Cerrar</button>
+</div>
+
+<div id="modal-ayuda" class="oculto">
+  <div class="retorno-contenido">
+    <div class="centro" style="margin-bottom:1.4rem">
+      <span class="eyebrow">Preguntas frecuentes</span>
+      <h2 style="font-size:1.4rem;margin-top:.4rem">Ayuda rápida</h2>
+    </div>
+    <div class="card" style="text-align:left">
+      <h3 style="font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.3rem">¿Cómo cancelo o dejo de renovar?</h3>
+      <p style="font-size:.85rem;margin-bottom:1.1rem">No hay nada que cancelar — cada pago da 30 (o 365) días. Si no vuelves a pagar, simplemente no se renueva. Sin cobros automáticos.</p>
+      <h3 style="font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.3rem">Perdí mi acceso, ¿qué hago?</h3>
+      <p style="font-size:.85rem;margin-bottom:1.1rem">Dale "Cambiar de cuenta" y vuelve a ingresar tu correo — como ya tienes cuenta, te va a pedir un código que te mandamos por email.</p>
+      <h3 style="font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.3rem">No sé mi hora exacta de nacimiento</h3>
+      <p style="font-size:.85rem;margin-bottom:1.1rem">Marca "No sé mi hora exacta" al registrarte — tu Sol y numerología siguen siendo exactos, solo tu Ascendente podría variar un poco.</p>
+      <h3 style="font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.3rem">¿Por qué me dice que llegué a un límite?</h3>
+      <p style="font-size:.85rem;margin-bottom:0">Cada función tiene un límite diario generoso (pensado para uso real, no para restringirte) que se reinicia cada día — vuelve mañana o escríbenos a Soporte.</p>
+    </div>
+    <button class="modal-compartir-cerrar" onclick="document.getElementById('modal-ayuda').classList.add('oculto')" style="display:block;margin:1rem auto 0">Cerrar</button>
+  </div>
+</div>
+
+<div id="modal-resena" class="oculto">
+  <div class="retorno-contenido">
+    <div class="centro" style="margin-bottom:1.4rem">
+      <span class="eyebrow">Tu opinión importa</span>
+      <h2 style="font-size:1.4rem;margin-top:.4rem">Cuéntanos tu experiencia</h2>
+    </div>
+    <label>¿Cómo calificarías Oráculo Astral?</label>
+    <div class="fila centro" id="resena-estrellas" style="justify-content:center;gap:.4rem;margin-bottom:1.2rem;font-size:1.6rem">
+      <span data-valor="1" onclick="elegirEstrella(1)" style="cursor:pointer;color:var(--texto-suave)">★</span>
+      <span data-valor="2" onclick="elegirEstrella(2)" style="cursor:pointer;color:var(--texto-suave)">★</span>
+      <span data-valor="3" onclick="elegirEstrella(3)" style="cursor:pointer;color:var(--texto-suave)">★</span>
+      <span data-valor="4" onclick="elegirEstrella(4)" style="cursor:pointer;color:var(--texto-suave)">★</span>
+      <span data-valor="5" onclick="elegirEstrella(5)" style="cursor:pointer;color:var(--texto-suave)">★</span>
+    </div>
+    <label>Cuéntanos más (opcional)</label>
+    <textarea id="resena-texto" rows="3" placeholder="Lo que más te gusta, o lo que mejorarías..."></textarea>
+    <div id="resena-estado" class="oculto" style="margin-bottom:1rem"></div>
+    <button class="btn btn-oro" onclick="enviarResena()">Enviar</button>
+    <button class="modal-compartir-cerrar" onclick="document.getElementById('modal-resena').classList.add('oculto')" style="display:block;margin:1rem auto 0">Cerrar</button>
+  </div>
 </div>
 
 <div id="modal-soporte" class="oculto">
@@ -589,6 +661,7 @@ function cerrarSesion() {
   document.getElementById("pantalla-onboarding").classList.remove("oculto");
   document.getElementById("btn-cambiar-cuenta").classList.add("oculto");
   document.getElementById("btn-soporte").classList.add("oculto");
+  document.getElementById("btn-ayuda").classList.add("oculto");
   wizardIrAPaso(0);
 }
 
@@ -670,7 +743,7 @@ async function wizardSiguiente(pasoActual) {
       const r = await fetch(API + "/auth/generar-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario_id: correo }),
+        body: JSON.stringify({ usuario_id: correo, nombre: document.getElementById("ob-nombre").value.trim() }),
       });
 
       if (r.status === 409) {
@@ -834,6 +907,7 @@ async function completarRegistro() {
   document.getElementById("pantalla-app").classList.remove("oculto");
   document.getElementById("btn-cambiar-cuenta").classList.remove("oculto");
     document.getElementById("btn-soporte").classList.remove("oculto");
+    document.getElementById("btn-ayuda").classList.remove("oculto");
   cambiarTab("hoy");
 }
 
@@ -1071,7 +1145,8 @@ async function cargarPremium() {
       cont.innerHTML =
         '<div class="premium-banner">' + SELLO_SVG +
         '<div class="precio">Premium activo</div>' +
-        '<p style="font-size:.85rem;color:var(--texto-suave)">Vence el ' + vence + '</p></div>' +
+        '<p style="font-size:.85rem;color:var(--texto-suave)">Vence el ' + vence + '</p>' +
+        '<button class="link-sutil" style="margin-top:1rem" onclick="document.getElementById(\'modal-resena\').classList.remove(\'oculto\')">✦ Cuéntanos tu experiencia</button></div>' +
         '<div id="referidos-caja"></div>';
     } else {
       cont.className = "";
@@ -1089,7 +1164,10 @@ async function cargarPremium() {
             '<span class="plan-opcion-nombre">Anual</span>' +
             '<span class="plan-opcion-precio">$399.000<small>/año</small></span>' +
           '</button>' +
-        '</div></div>' +
+        '</div>' +
+        '<button class="link-sutil" style="display:block;margin:1rem auto 0" onclick="verificarPagoManual()">¿Ya pagaste y no se activó? Verificar mi pago</button>' +
+        '<div id="verificar-pago-estado"></div>' +
+        '</div>' +
         '<div id="referidos-caja"></div>';
     }
     cargarCodigoReferido();
@@ -1131,6 +1209,28 @@ async function compartirCodigoReferido(codigo) {
     } catch (e) {
       alert("Tu código es: " + codigo);
     }
+  }
+}
+
+async function verificarPagoManual() {
+  const sesion = obtenerSesion();
+  const estado = document.getElementById("verificar-pago-estado");
+  estado.className = "estado-msg";
+  estado.textContent = "Consultando con Wompi…";
+
+  try {
+    const r = await llamarAPI("/pagos/wompi/verificar/" + encodeURIComponent(sesion.usuarioId), { method: "POST" });
+    const d = await r.json();
+    estado.className = "";
+    if (d.estado === "APPROVED") {
+      estado.innerHTML = '<p style="color:var(--oro-claro);text-align:center;font-size:.85rem;margin-top:.8rem">' + d.mensaje + '</p>';
+      setTimeout(cargarPremium, 1500);
+    } else {
+      estado.innerHTML = '<p style="color:var(--texto-suave);text-align:center;font-size:.85rem;margin-top:.8rem">' + d.mensaje + '</p>';
+    }
+  } catch (e) {
+    estado.className = "error-msg";
+    estado.textContent = e.message;
   }
 }
 
@@ -1485,6 +1585,50 @@ async function enviarSoporte() {
   }
 }
 
+// ---------- Reseñas ----------
+let calificacionElegida = 0;
+
+function elegirEstrella(valor) {
+  calificacionElegida = valor;
+  document.querySelectorAll("#resena-estrellas span").forEach(function(s) {
+    s.style.color = Number(s.dataset.valor) <= valor ? "var(--oro)" : "var(--texto-suave)";
+  });
+}
+
+async function enviarResena() {
+  const sesion = obtenerSesion();
+  const texto = document.getElementById("resena-texto").value.trim();
+  const estado = document.getElementById("resena-estado");
+
+  if (!calificacionElegida) {
+    estado.className = "error-msg";
+    estado.textContent = "Elige cuántas estrellas le darías.";
+    return;
+  }
+
+  estado.className = "estado-msg";
+  estado.textContent = "Enviando…";
+
+  try {
+    const r = await llamarAPI("/resenas/enviar", {
+      method: "POST",
+      body: JSON.stringify({ usuario_id: sesion.usuarioId, calificacion: calificacionElegida, texto: texto || "(sin comentario)" }),
+    });
+    const d = await r.json();
+    estado.className = "";
+    estado.innerHTML = '<p style="color:var(--oro-claro);text-align:center;font-size:.9rem">' + d.mensaje + '</p>';
+  } catch (e) {
+    estado.className = "error-msg";
+    estado.textContent = e.message;
+  }
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker.register("sw.js").catch(function() {});
+  });
+}
+
 (function iniciar() {
   const sesion = obtenerSesion();
   if (sesion) {
@@ -1492,6 +1636,7 @@ async function enviarSoporte() {
     document.getElementById("pantalla-app").classList.remove("oculto");
     document.getElementById("btn-cambiar-cuenta").classList.remove("oculto");
     document.getElementById("btn-soporte").classList.remove("oculto");
+    document.getElementById("btn-ayuda").classList.remove("oculto");
     cambiarTab("hoy");
   }
 })();

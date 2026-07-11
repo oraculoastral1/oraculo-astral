@@ -5,6 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Oráculo Astral — Tu cielo sabe lo que hoy necesitas oír</title>
 <meta name="description" content="Tu carta natal real, leída cada mañana. Astrología de precisión, numerología y tarot, tejidos en una guía diaria íntima y narrada. Hecho para Latinoamérica.">
+
+<!-- Favicon y PWA -->
+<link rel="icon" type="image/x-icon" href="iconos/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="iconos/favicon-32.png">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#070510">
+
+<!-- Vista previa al compartir (Open Graph) -->
+<meta property="og:title" content="Oráculo Astral — Tu cielo sabe lo que hoy necesitas oír">
+<meta property="og:description" content="Tu carta natal real, leída cada mañana. Astrología de precisión, numerología y tarot.">
+<meta property="og:image" content="https://oraculoastral1.github.io/oraculo-astral/iconos/og-image.png">
+<meta property="og:url" content="https://oraculoastral1.github.io/oraculo-astral/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
+<!-- Meta Pixel — reemplaza TU_PIXEL_ID cuando tengas tu Pixel de Facebook/Instagram creado -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', 'TU_PIXEL_ID');
+fbq('track', 'PageView');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,600;1,9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -516,6 +545,20 @@
     es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("visible"); obs.unobserve(e.target); } });
   }, { threshold:.12 });
   document.querySelectorAll(".revelar").forEach(function(el){ obs.observe(el); });
+
+  // Aviso de cookies/analítica — simple, se recuerda con localStorage
+  if (!localStorage.getItem("oa_cookies_aceptadas")) {
+    const banner = document.createElement("div");
+    banner.style.cssText = "position:fixed;bottom:0;left:0;right:0;z-index:200;background:#0c0917;border-top:1px solid rgba(212,175,106,.25);padding:1.1rem 1.5rem;display:flex;gap:1rem;align-items:center;justify-content:center;flex-wrap:wrap;font-family:Inter,sans-serif";
+    banner.innerHTML =
+      '<p style="font-size:.82rem;color:#aca6bd;margin:0;max-width:520px">Usamos cookies y herramientas de analítica para entender cómo llega la gente a esta página. No vendemos tus datos.</p>' +
+      '<button id="oa-aceptar-cookies" style="background:#d4af6a;color:#14101f;border:none;padding:.6rem 1.4rem;border-radius:4px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:Inter,sans-serif">Entendido</button>';
+    document.body.appendChild(banner);
+    document.getElementById("oa-aceptar-cookies").onclick = function() {
+      localStorage.setItem("oa_cookies_aceptadas", "1");
+      banner.remove();
+    };
+  }
 </script>
 </body>
 </html>
