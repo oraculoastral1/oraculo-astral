@@ -29,12 +29,14 @@ def _config_supabase() -> tuple[str, dict]:
     return f"{url_base}/rest/v1/suscripciones", headers
 
 
-def registrar_pago_pendiente(usuario_id: str, referencia_pago: str, proveedor: str) -> None:
+def registrar_pago_pendiente(usuario_id: str, referencia_pago: str, proveedor: str, dias_plan: int = 30) -> None:
     """
     Deja una marca de "pago en camino" ANTES de mandar a la persona a pagar,
     para poder encontrarla de nuevo cuando llegue la confirmación del webhook
     (buscar por la referencia es más confiable que tratar de extraer el
-    usuario_id del texto de la referencia).
+    usuario_id del texto de la referencia). También guarda cuántos días
+    de premium corresponden a este pago (30 para mensual, 365 para anual),
+    para que el webhook sepa cuánto activar sin tener que adivinarlo.
     """
     url, headers = _config_supabase()
 
@@ -44,6 +46,7 @@ def registrar_pago_pendiente(usuario_id: str, referencia_pago: str, proveedor: s
         "proveedor": proveedor,
         "estado": "pendiente",
         "referencia_pago": referencia_pago,
+        "dias_plan": dias_plan,
         "actualizado_en": datetime.now(timezone.utc).isoformat(),
     }
     respuesta = requests.post(
@@ -53,8 +56,8 @@ def registrar_pago_pendiente(usuario_id: str, referencia_pago: str, proveedor: s
         raise RuntimeError(f"No se pudo registrar el pago pendiente: {respuesta.text}")
 
 
-def buscar_usuario_por_referencia(referencia_pago: str) -> str | None:
-    """Encuentra qué usuario_id corresponde a una referencia de pago dada."""
+def buscar_pago_por_referencia(referencia_pago: str) -> dict | None:
+    """Encuentra qué usuario_id y cuántos días de plan corresponden a una referencia de pago."""
     url, headers = _config_supabase()
 
     respuesta = requests.get(
@@ -64,7 +67,9 @@ def buscar_usuario_por_referencia(referencia_pago: str) -> str | None:
         raise RuntimeError(f"No se pudo buscar la referencia de pago: {respuesta.text}")
 
     filas = respuesta.json()
-    return filas[0]["usuario_id"] if filas else None
+    if not filas:
+        return None
+    return {"usuario_id": filas[0]["usuario_id"], "dias_plan": filas[0].get("dias_plan") or 30}
 
 
 def agregar_dias_premium(usuario_id: str, dias: int, proveedor: str = "referido") -> None:
