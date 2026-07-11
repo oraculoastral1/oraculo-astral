@@ -85,18 +85,25 @@
     font-size:.72rem;color:var(--oro-claro);background:var(--noche-2);letter-spacing:.02em;
   }
 
+  .tabs-wrap{position:sticky;top:0;z-index:10;background:var(--noche)}
+  .tabs-wrap::before,.tabs-wrap::after{
+    content:"";position:absolute;top:0;bottom:1px;width:28px;z-index:2;pointer-events:none;
+  }
+  .tabs-wrap::before{left:0;background:linear-gradient(90deg,var(--noche),transparent)}
+  .tabs-wrap::after{right:0;background:linear-gradient(270deg,var(--noche),transparent)}
   nav.tabs{
-    display:flex;gap:0;overflow-x:auto;padding:.8rem 0 1.5rem;position:sticky;top:0;
-    background:var(--noche);z-index:10;border-bottom:1px solid var(--linea);
-    scrollbar-width:none;-ms-overflow-style:none;
+    display:flex;gap:0;overflow-x:auto;padding:.8rem 4px 1.5rem;position:relative;
+    background:var(--noche);border-bottom:1px solid var(--linea);
+    scrollbar-width:none;-ms-overflow-style:none;scroll-behavior:smooth;
   }
   nav.tabs::-webkit-scrollbar{display:none;height:0}
   nav.tabs button{
     background:transparent;border:none;color:var(--texto-suave);
-    padding:.5rem 1rem .8rem;font-size:.78rem;cursor:pointer;white-space:nowrap;
+    padding:.5rem 1rem .8rem;font-size:.78rem;cursor:pointer;white-space:nowrap;flex-shrink:0;
     text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid transparent;
-    font-family:var(--sans);margin-bottom:-1px;
+    font-family:var(--sans);margin-bottom:-1px;border-radius:4px;
   }
+  nav.tabs button:focus-visible{outline:none;box-shadow:0 0 0 2px var(--oro) inset}
   nav.tabs button.activo{color:var(--oro-claro);border-bottom-color:var(--oro)}
 
   .estado-msg{font-size:.85rem;color:var(--texto-suave);text-align:center;padding:1.2rem 0}
@@ -443,6 +450,7 @@
 </div>
 
 <div id="pantalla-app" class="wrap oculto">
+  <div class="tabs-wrap">
   <nav class="tabs">
     <button class="tab-btn activo" data-tab="hoy" onclick="cambiarTab('hoy')"><span class="glifo-tab">☉</span>Hoy</button>
     <button class="tab-btn" data-tab="oraculo" onclick="cambiarTab('oraculo')"><span class="glifo-tab">☿</span>Oráculo</button>
@@ -451,6 +459,8 @@
     <button class="tab-btn" data-tab="historial" onclick="cambiarTab('historial')"><span class="glifo-tab">✦</span>Historial</button>
     <button class="tab-btn" data-tab="premium" onclick="cambiarTab('premium')"><span class="glifo-tab">♛</span>Premium</button>
   </nav>
+  </div>
+
 
   <section id="tab-hoy">
     <div id="hoy-contenido" class="estado-msg">Consultando los astros…</div>
@@ -805,7 +815,9 @@ async function completarRegistro() {
 
 function cambiarTab(nombre) {
   document.querySelectorAll(".tab-btn").forEach(function(b) {
-    b.classList.toggle("activo", b.dataset.tab === nombre);
+    const activa = b.dataset.tab === nombre;
+    b.classList.toggle("activo", activa);
+    if (activa) b.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   });
   ["hoy", "oraculo", "suenos", "compat", "historial", "premium"].forEach(function(t) {
     document.getElementById("tab-" + t).classList.toggle("oculto", t !== nombre);
