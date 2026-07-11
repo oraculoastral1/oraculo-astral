@@ -196,6 +196,38 @@
   /* ---------- Sello premium ---------- */
   .sello-premium{width:52px;height:52px;margin:0 auto 1rem;opacity:.95}
 
+  /* ---------- Tarjeta de lectura (con letra capital y ornamento) ---------- */
+  .lectura-card{position:relative;padding-top:2.4rem}
+  .lectura-card .ornamento{
+    position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+    background:var(--noche);padding:0 1rem;color:var(--oro);font-size:1rem;
+  }
+  .lectura-card p::first-letter{
+    font-family:var(--serif);font-size:3.2rem;font-weight:700;float:left;
+    line-height:.8;margin:.1rem .5rem 0 0;color:var(--oro-claro);
+  }
+  .lectura-card p{line-height:1.85}
+
+  /* ---------- Módulo de audio premium ---------- */
+  .audio-modulo{
+    border:1px solid var(--oro);border-radius:8px;padding:1.3rem 1.4rem;margin-top:1.2rem;
+    background:linear-gradient(160deg,var(--noche-3),rgba(26,20,56,.3));
+    display:flex;align-items:center;gap:1.1rem;
+  }
+  .audio-icono{
+    width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--oro);background:radial-gradient(circle,rgba(212,175,106,.12),transparent 70%);
+    font-size:1.3rem;color:var(--oro-claro);cursor:pointer;transition:transform .2s;
+  }
+  .audio-icono:hover{transform:scale(1.06)}
+  .audio-icono.cargando{animation:pulsarIcono 1s ease-in-out infinite}
+  @keyframes pulsarIcono{0%,100%{opacity:.5}50%{opacity:1}}
+  .audio-texto{flex:1}
+  .audio-texto .titulo{font-family:var(--serif);color:var(--marfil);font-size:1rem;font-weight:600}
+  .audio-texto .subtitulo{font-size:.78rem;color:var(--texto-suave);margin-top:.15rem}
+  .audio-modulo audio{margin-top:0}
+  @media (max-width:480px){.audio-modulo{flex-direction:column;text-align:center}}
+
   .compat-par{display:flex;gap:1rem;margin-bottom:1.1rem}
   .compat-persona{flex:1;text-align:center;padding:1rem;border:1px solid var(--linea);border-radius:6px}
   .compat-persona h4{font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.5rem;font-weight:600}
@@ -602,8 +634,14 @@ async function cargarLecturaHoy() {
         '<span class="chip">Tarot · ' + d.tarot.carta + ' (' + d.tarot.orientacion + ')</span>' +
         '<span class="chip">Camino de vida · ' + d.numerologia.numero + '</span>' +
       '</div>' +
-      '<div class="card"><p>' + d.lectura + '</p></div>' +
-      '<button class="btn btn-ghost" id="btn-escuchar" onclick="escucharLecturaHoy()">Escuchar en audio</button>' +
+      '<div class="card lectura-card"><span class="ornamento">✦</span><p>' + d.lectura + '</p></div>' +
+      '<div class="audio-modulo">' +
+        '<div class="audio-icono" id="btn-escuchar" onclick="escucharLecturaHoy()">▶</div>' +
+        '<div class="audio-texto">' +
+          '<div class="titulo">Escucha tu lectura narrada</div>' +
+          '<div class="subtitulo" id="audio-subtitulo">Tu ritual de la mañana, sin leer una sola línea · Premium</div>' +
+        '</div>' +
+      '</div>' +
       '<div id="audio-hoy"></div>';
   } catch (e) {
     cont.className = "error-msg";
@@ -613,10 +651,13 @@ async function cargarLecturaHoy() {
 
 async function escucharLecturaHoy() {
   const sesion = obtenerSesion();
-  const btn = document.getElementById("btn-escuchar");
+  const icono = document.getElementById("btn-escuchar");
+  const subtitulo = document.getElementById("audio-subtitulo");
   const cont = document.getElementById("audio-hoy");
-  btn.textContent = "Generando audio…";
-  btn.disabled = true;
+  icono.textContent = "…";
+  icono.classList.add("cargando");
+  icono.onclick = null;
+  subtitulo.textContent = "Generando tu audio…";
 
   try {
     const r = await llamarAPI("/audio/lectura-diaria-narrada", {
@@ -631,15 +672,18 @@ async function escucharLecturaHoy() {
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
     cont.innerHTML = '<audio controls autoplay src="' + url + '"></audio>';
-    btn.classList.add("oculto");
+    icono.classList.remove("cargando");
+    icono.textContent = "♪";
+    subtitulo.textContent = "Reproduciendo tu lectura de hoy";
   } catch (e) {
+    icono.classList.remove("cargando");
+    icono.textContent = "▶";
+    icono.onclick = escucharLecturaHoy;
     if (e.status === 402) {
-      cont.innerHTML = '<div class="error-msg">El audio es una función premium. Ve a la pestaña "Premium" para activarlo.</div>';
+      subtitulo.innerHTML = 'Función premium — ve a la pestaña <a href="#" onclick="cambiarTab(\'premium\');return false" style="color:var(--oro-claro)">Premium</a> para activarla';
     } else {
-      cont.innerHTML = '<div class="error-msg">' + e.message + '</div>';
+      subtitulo.textContent = e.message;
     }
-    btn.textContent = "Escuchar en audio";
-    btn.disabled = false;
   }
 }
 
