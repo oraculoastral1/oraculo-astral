@@ -500,7 +500,7 @@ let correoEnProceso = null;  // correo que se está registrando/recuperando
 
 function wizardIrAPaso(n) {
   wizardPasoActual = n;
-  document.querySelectorAll(".paso-wizard").forEach(function(p) {
+  document.querySelectorAll("#pantalla-onboarding .paso-wizard").forEach(function(p) {
     p.classList.toggle("activo", Number(p.dataset.paso) === n);
   });
   document.querySelectorAll("#wizard-progreso .punto").forEach(function(p) {
@@ -508,7 +508,7 @@ function wizardIrAPaso(n) {
     p.classList.toggle("activo", idx === n);
     p.classList.toggle("completo", idx < n);
   });
-  const primerInput = document.querySelector('.paso-wizard[data-paso="' + n + '"] input');
+  const primerInput = document.querySelector('#pantalla-onboarding .paso-wizard[data-paso="' + n + '"] input');
   if (primerInput) setTimeout(function() { primerInput.focus(); }, 150);
 }
 
@@ -595,16 +595,20 @@ async function mostrarPantallaRecuperacion() {
     "Enviando un código a " + correoEnProceso + "…";
 
   try {
-    await fetch(API + "/auth/solicitar-recuperacion", {
+    const r = await fetch(API + "/auth/solicitar-recuperacion", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ usuario_id: correoEnProceso }),
     });
+    if (!r.ok) {
+      const detalle = (await r.json()).detail || "No se pudo enviar el código.";
+      throw new Error(detalle);
+    }
     document.getElementById("recuperacion-mensaje").textContent =
       "Te enviamos un código de 6 dígitos a " + correoEnProceso + " — revisa tu bandeja de entrada (y spam, por si acaso).";
   } catch (e) {
     document.getElementById("recuperacion-mensaje").textContent =
-      "No se pudo enviar el código. Toca \"Reenviar código\" para intentar de nuevo.";
+      "No se pudo enviar el código (" + e.message + "). Toca \"Reenviar código\" para intentar de nuevo.";
   }
 }
 
