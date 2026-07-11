@@ -176,6 +176,26 @@
   }
   @keyframes pulsarTexto{0%,100%{opacity:.55}50%{opacity:1}}
 
+  /* ---------- Ambiente global (también dentro del dashboard) ---------- */
+  .orbe-ambiente{position:fixed;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:-1;opacity:.16}
+  .orbe-ambiente-1{width:380px;height:380px;background:radial-gradient(circle,var(--oro),transparent 70%);top:-6%;left:-10%;animation:flotar1 28s ease-in-out infinite}
+  .orbe-ambiente-2{width:320px;height:320px;background:radial-gradient(circle,var(--luna),transparent 70%);bottom:-8%;right:-8%;animation:flotar2 32s ease-in-out infinite}
+
+  /* ---------- Pestañas con glifo ---------- */
+  nav.tabs button .glifo-tab{color:var(--oro);margin-right:.35rem;font-family:var(--serif)}
+
+  /* ---------- Encabezados editoriales por sección ---------- */
+  .encabezado-seccion{text-align:center;margin-bottom:1.8rem}
+  .encabezado-seccion h2{font-size:1.5rem;margin-top:.4rem}
+  .encabezado-seccion p{font-size:.85rem;color:var(--texto-suave);margin-top:.4rem;max-width:420px;margin-left:auto;margin-right:auto}
+
+  /* ---------- Pulido de tarjetas ---------- */
+  .card{transition:border-color .25s, transform .25s}
+  .card:hover{border-color:rgba(212,175,106,.4)}
+
+  /* ---------- Sello premium ---------- */
+  .sello-premium{width:52px;height:52px;margin:0 auto 1rem;opacity:.95}
+
   .compat-par{display:flex;gap:1rem;margin-bottom:1.1rem}
   .compat-persona{flex:1;text-align:center;padding:1rem;border:1px solid var(--linea);border-radius:6px}
   .compat-persona h4{font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.5rem;font-weight:600}
@@ -190,6 +210,9 @@
 </style>
 </head>
 <body>
+<div class="orbe-ambiente orbe-ambiente-1"></div>
+<div class="orbe-ambiente orbe-ambiente-2"></div>
+
 
 <header class="top">
   <div class="logo">Oráculo <span>Astral</span></div>
@@ -289,11 +312,11 @@
 
 <div id="pantalla-app" class="wrap oculto">
   <nav class="tabs">
-    <button class="tab-btn activo" data-tab="hoy" onclick="cambiarTab('hoy')">Hoy</button>
-    <button class="tab-btn" data-tab="suenos" onclick="cambiarTab('suenos')">Sueños</button>
-    <button class="tab-btn" data-tab="compat" onclick="cambiarTab('compat')">Compatibilidad</button>
-    <button class="tab-btn" data-tab="historial" onclick="cambiarTab('historial')">Historial</button>
-    <button class="tab-btn" data-tab="premium" onclick="cambiarTab('premium')">Premium</button>
+    <button class="tab-btn activo" data-tab="hoy" onclick="cambiarTab('hoy')"><span class="glifo-tab">☉</span>Hoy</button>
+    <button class="tab-btn" data-tab="suenos" onclick="cambiarTab('suenos')"><span class="glifo-tab">☾</span>Sueños</button>
+    <button class="tab-btn" data-tab="compat" onclick="cambiarTab('compat')"><span class="glifo-tab">♀</span>Compatibilidad</button>
+    <button class="tab-btn" data-tab="historial" onclick="cambiarTab('historial')"><span class="glifo-tab">✦</span>Historial</button>
+    <button class="tab-btn" data-tab="premium" onclick="cambiarTab('premium')"><span class="glifo-tab">♛</span>Premium</button>
   </nav>
 
   <section id="tab-hoy">
@@ -301,6 +324,11 @@
   </section>
 
   <section id="tab-suenos" class="oculto">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Interpretación</span>
+      <h2>¿Qué soñaste anoche?</h2>
+      <p>Describe tu sueño con el mayor detalle posible — la mirada de Jung y de Freud se tejen en tu interpretación.</p>
+    </div>
     <div class="card">
       <label>Describe tu sueño</label>
       <textarea id="sueno-texto" rows="4" placeholder="Soñé que..."></textarea>
@@ -310,6 +338,11 @@
   </section>
 
   <section id="tab-compat" class="oculto">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Sinastría</span>
+      <h2>La química entre dos cielos</h2>
+      <p>Compara tu carta con la de otra persona — pareja, amistad o trabajo — planeta contra planeta.</p>
+    </div>
     <div class="card">
       <label>Nombre de la otra persona</label>
       <input type="text" id="compat-nombre" placeholder="Ej: Luis">
@@ -325,16 +358,34 @@
   </section>
 
   <section id="tab-historial" class="oculto">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Tu historia</span>
+      <h2>Tus patrones a través del tiempo</h2>
+      <p>Cada lectura queda guardada — con el tiempo, el oráculo reconoce qué se repite en tu camino.</p>
+    </div>
     <div id="historial-contenido" class="estado-msg">Cargando historial…</div>
   </section>
 
   <section id="tab-premium" class="oculto">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Tu plan</span>
+      <h2>Oráculo Astral</h2>
+    </div>
     <div id="premium-contenido" class="estado-msg">Consultando tu suscripción…</div>
   </section>
 </div>
 
 <script>
 const API = "https://oraculo-astral-api.onrender.com";
+
+const SELLO_SVG = '<svg class="sello-premium" viewBox="0 0 120 120" aria-hidden="true">' +
+  '<defs><linearGradient id="foilSello" x1="0" y1="0" x2="1" y2="1">' +
+  '<stop offset="0" stop-color="#8c6d2f"/><stop offset=".5" stop-color="#f0dca8"/><stop offset="1" stop-color="#8c6d2f"/>' +
+  '</linearGradient></defs>' +
+  '<circle cx="60" cy="60" r="57" fill="none" stroke="url(#foilSello)" stroke-width="1.5"/>' +
+  '<circle cx="60" cy="60" r="44" fill="none" stroke="url(#foilSello)" stroke-width=".8"/>' +
+  '<text x="60" y="72" text-anchor="middle" font-size="32" fill="url(#foilSello)" font-family="serif">☉</text>' +
+  '</svg>';
 
 function guardarSesion(usuarioId, token, datosNacimiento, nombre) {
   localStorage.setItem("oa_usuario_id", usuarioId);
@@ -721,16 +772,16 @@ async function cargarPremium() {
       const vence = new Date(d.fecha_fin).toLocaleDateString("es-CO", { day: "numeric", month: "long" });
       cont.className = "";
       cont.innerHTML =
-        '<div class="premium-banner"><span class="eyebrow">Tu plan</span>' +
+        '<div class="premium-banner">' + SELLO_SVG +
         '<div class="precio">Premium activo</div>' +
         '<p style="font-size:.85rem;color:var(--texto-suave)">Vence el ' + vence + '</p></div>';
     } else {
       cont.className = "";
       cont.innerHTML =
-        '<div class="premium-banner"><span class="eyebrow">Desbloquea todo</span>' +
-        '<div class="precio">Premium</div>' +
+        '<div class="premium-banner">' + SELLO_SVG +
+        '<div class="precio">Desbloquea todo</div>' +
         '<p style="font-size:.85rem;color:var(--texto-suave);margin-bottom:1.2rem">Audio narrado + compatibilidad con otras personas</p>' +
-        '<button class="btn btn-oro" onclick="pagarPremium()">Activar con Wompi</button></div>';
+        '<button class="btn btn-oro btn-shimmer" onclick="pagarPremium()">Activar con Wompi</button></div>';
     }
   } catch (e) {
     cont.className = "error-msg";
