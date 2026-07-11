@@ -67,6 +67,42 @@ def buscar_usuario_por_referencia(referencia_pago: str) -> str | None:
     return filas[0]["usuario_id"] if filas else None
 
 
+def agregar_dias_premium(usuario_id: str, dias: int, proveedor: str = "referido") -> None:
+    """
+    Suma días de premium a una persona SIN resetear lo que ya tenía —
+    a diferencia de activar_premium (que fija una fecha de inicio/fin nueva,
+    pensado para un pago), esta función extiende lo que ya existe. Si la
+    persona no tenía premium, le da 'dias' desde ahora; si ya lo tenía
+    activo, le suma 'dias' a su fecha de vencimiento actual.
+    """
+    estado_actual = obtener_estado(usuario_id)
+    ahora = datetime.now(timezone.utc)
+
+    if estado_actual.get("plan") == "premium" and estado_actual.get("estado") == "activa" and estado_actual.get("fecha_fin"):
+        fecha_fin_actual = datetime.fromisoformat(estado_actual["fecha_fin"])
+        nueva_fecha_fin = max(fecha_fin_actual, ahora) + timedelta(days=dias)
+        fecha_inicio = estado_actual.get("fecha_inicio", ahora.isoformat())
+    else:
+        nueva_fecha_fin = ahora + timedelta(days=dias)
+        fecha_inicio = ahora.isoformat()
+
+    url, headers = _config_supabase()
+    fila = {
+        "usuario_id": usuario_id,
+        "plan": "premium",
+        "proveedor": proveedor,
+        "estado": "activa",
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": nueva_fecha_fin.isoformat(),
+        "actualizado_en": ahora.isoformat(),
+    }
+    respuesta = requests.post(
+        url, headers=headers, params={"on_conflict": "usuario_id"}, json=fila, timeout=15
+    )
+    if not respuesta.ok:
+        raise RuntimeError(f"No se pudieron sumar los días de premium: {respuesta.text}")
+
+
 def activar_premium(
     usuario_id: str, proveedor: str, referencia_pago: str, dias_validez: int | None = None
 ) -> None:
