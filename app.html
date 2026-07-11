@@ -323,7 +323,10 @@
 
 <header class="top">
   <div class="logo">Oráculo <span>Astral</span></div>
-  <button class="link-sutil oculto" id="btn-cambiar-cuenta" onclick="cerrarSesion()">Cambiar de cuenta</button>
+  <div class="fila" style="gap:1.1rem;align-items:center">
+    <button class="link-sutil oculto" id="btn-soporte" onclick="abrirModalSoporte()">Soporte</button>
+    <button class="link-sutil oculto" id="btn-cambiar-cuenta" onclick="cerrarSesion()">Cambiar de cuenta</button>
+  </div>
 </header>
 
 <div id="pantalla-onboarding" class="wrap wizard-wrap">
@@ -440,6 +443,25 @@
     <button class="btn btn-linea" id="btn-compartir-nativo" onclick="compartirTarjetaNativo()">Compartir</button>
   </div>
   <button class="modal-compartir-cerrar" onclick="cerrarModalCompartir()">Cerrar</button>
+</div>
+
+<div id="modal-soporte" class="oculto">
+  <div class="retorno-contenido">
+    <div class="centro" style="margin-bottom:1.4rem">
+      <span class="eyebrow">Estamos para ayudarte</span>
+      <h2 style="font-size:1.4rem;margin-top:.4rem">Contáctanos</h2>
+    </div>
+    <label>Asunto</label>
+    <input type="text" id="soporte-asunto" class="input-wizard" style="text-align:left;font-size:.95rem;font-family:var(--sans)" placeholder="Ej: No puedo escuchar el audio">
+    <label>Tu mensaje</label>
+    <textarea id="soporte-mensaje" rows="4" placeholder="Cuéntanos qué pasó..."></textarea>
+    <div id="soporte-estado" class="oculto" style="margin-bottom:1rem"></div>
+    <button class="btn btn-oro" onclick="enviarSoporte()">Enviar mensaje</button>
+    <p style="font-size:.75rem;color:var(--texto-suave);text-align:center;margin-top:1rem">
+      O escríbenos directo a <a href="mailto:oraculoastral@outlook.com" style="color:var(--oro-claro)">oraculoastral@outlook.com</a>
+    </p>
+    <button class="modal-compartir-cerrar" onclick="document.getElementById('modal-soporte').classList.add('oculto')" style="display:block;margin:1rem auto 0">Cerrar</button>
+  </div>
 </div>
 
 <div id="modal-retorno" class="oculto">
@@ -566,6 +588,7 @@ function cerrarSesion() {
   document.getElementById("pantalla-app").classList.add("oculto");
   document.getElementById("pantalla-onboarding").classList.remove("oculto");
   document.getElementById("btn-cambiar-cuenta").classList.add("oculto");
+  document.getElementById("btn-soporte").classList.add("oculto");
   wizardIrAPaso(0);
 }
 
@@ -810,6 +833,7 @@ async function completarRegistro() {
   pantallaRev.classList.add("oculto");
   document.getElementById("pantalla-app").classList.remove("oculto");
   document.getElementById("btn-cambiar-cuenta").classList.remove("oculto");
+    document.getElementById("btn-soporte").classList.remove("oculto");
   cambiarTab("hoy");
 }
 
@@ -1422,12 +1446,52 @@ async function preguntarOraculo() {
   }
 }
 
+// ---------- Soporte ----------
+function abrirModalSoporte() {
+  document.getElementById("soporte-asunto").value = "";
+  document.getElementById("soporte-mensaje").value = "";
+  document.getElementById("soporte-estado").className = "oculto";
+  document.getElementById("modal-soporte").classList.remove("oculto");
+}
+
+async function enviarSoporte() {
+  const sesion = obtenerSesion();
+  const asunto = document.getElementById("soporte-asunto").value.trim();
+  const mensaje = document.getElementById("soporte-mensaje").value.trim();
+  const estado = document.getElementById("soporte-estado");
+
+  if (!asunto || !mensaje) {
+    estado.className = "error-msg";
+    estado.textContent = "Completa el asunto y el mensaje.";
+    return;
+  }
+
+  estado.className = "estado-msg";
+  estado.textContent = "Enviando…";
+
+  try {
+    const r = await llamarAPI("/soporte/enviar", {
+      method: "POST",
+      body: JSON.stringify({ usuario_id: sesion.usuarioId, asunto: asunto, mensaje: mensaje }),
+    });
+    const d = await r.json();
+    estado.className = "";
+    estado.innerHTML = '<p style="color:var(--oro-claro);text-align:center;font-size:.9rem">' + d.mensaje + '</p>';
+    document.getElementById("soporte-asunto").value = "";
+    document.getElementById("soporte-mensaje").value = "";
+  } catch (e) {
+    estado.className = "error-msg";
+    estado.textContent = e.message;
+  }
+}
+
 (function iniciar() {
   const sesion = obtenerSesion();
   if (sesion) {
     document.getElementById("pantalla-onboarding").classList.add("oculto");
     document.getElementById("pantalla-app").classList.remove("oculto");
     document.getElementById("btn-cambiar-cuenta").classList.remove("oculto");
+    document.getElementById("btn-soporte").classList.remove("oculto");
     cambiarTab("hoy");
   }
 })();
