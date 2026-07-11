@@ -995,6 +995,36 @@ const GLIFOS_SIGNOS = {
 };
 const URL_COMPARTIR = "oraculoastral1.github.io/oraculo-astral";
 
+function extraerResumen(texto) {
+  const limite = 150;
+  const corte = texto.indexOf(". ");
+  let resumen;
+  if (corte > 25 && corte < limite) {
+    resumen = texto.slice(0, corte + 1);
+  } else {
+    resumen = texto.slice(0, limite).trim();
+    if (texto.length > limite) resumen += "…";
+  }
+  return "\u201C" + resumen + "\u201D";
+}
+
+function envolverTexto(ctx, texto, maxWidth) {
+  const palabras = texto.split(" ");
+  const lineas = [];
+  let lineaActual = "";
+  palabras.forEach(function(palabra) {
+    const prueba = lineaActual ? lineaActual + " " + palabra : palabra;
+    if (ctx.measureText(prueba).width > maxWidth && lineaActual) {
+      lineas.push(lineaActual);
+      lineaActual = palabra;
+    } else {
+      lineaActual = prueba;
+    }
+  });
+  if (lineaActual) lineas.push(lineaActual);
+  return lineas;
+}
+
 async function generarTarjetaCompartir() {
   if (!ultimaLecturaHoy) {
     alert("Espera a que cargue tu lectura de hoy antes de compartirla.");
@@ -1096,18 +1126,31 @@ async function generarTarjetaCompartir() {
   ctx.font = "600 24px Inter, sans-serif";
   ctx.fillText("CAMINO DE VIDA · " + d.numerologia.numero, 540, 1410);
 
+  // Extracto de la lectura — lo que hace que la imagen cuente algo, no solo datos
+  ctx.fillStyle = "#d4af6a";
+  ctx.font = "600 22px Inter, sans-serif";
+  ctx.fillText("TU LECTURA DE HOY", 540, 1480);
+  ctx.fillStyle = "#f5efe2";
+  ctx.font = "italic 400 33px Fraunces, serif";
+  const lineasResumen = envolverTexto(ctx, extraerResumen(d.lectura), 840).slice(0, 3);
+  let yResumen = 1530;
+  lineasResumen.forEach(function(linea) {
+    ctx.fillText(linea, 540, yResumen);
+    yResumen += 45;
+  });
+
   // Frase de cierre
   ctx.fillStyle = "#f0dca8";
-  ctx.font = "italic 400 34px Fraunces, serif";
-  ctx.fillText("Tu cielo, leído cada mañana", 540, 1620);
+  ctx.font = "italic 400 30px Fraunces, serif";
+  ctx.fillText("Tu cielo, leído cada mañana", 540, yResumen + 55);
 
   // CTA
   ctx.fillStyle = "#8b84a3";
-  ctx.font = "24px Inter, sans-serif";
-  ctx.fillText("Recibe tu lectura gratis en", 540, 1760);
+  ctx.font = "22px Inter, sans-serif";
+  ctx.fillText("Recibe tu lectura gratis en", 540, yResumen + 145);
   ctx.fillStyle = "#d4af6a";
-  ctx.font = "600 26px Inter, sans-serif";
-  ctx.fillText(URL_COMPARTIR, 540, 1795);
+  ctx.font = "600 24px Inter, sans-serif";
+  ctx.fillText(URL_COMPARTIR, 540, yResumen + 178);
 
   canvas.toBlob(function(blob) {
     const url = URL.createObjectURL(blob);
