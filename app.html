@@ -278,6 +278,24 @@
   }
   #oraculo-mensajes{margin-bottom:1.2rem}
 
+  /* ---------- Planes premium (mensual / anual) ---------- */
+  .planes-premium{display:flex;gap:.8rem}
+  .plan-opcion{
+    flex:1;position:relative;background:var(--noche);border:1px solid var(--linea);border-radius:8px;
+    padding:1.2rem .8rem;cursor:pointer;text-align:center;transition:border-color .2s,transform .2s;
+    font-family:var(--sans);display:flex;flex-direction:column;gap:.3rem;
+  }
+  .plan-opcion:hover{transform:translateY(-2px);border-color:var(--oro)}
+  .plan-opcion.destacado{border-color:var(--oro);background:linear-gradient(170deg,var(--noche-3),var(--noche))}
+  .plan-opcion-etiqueta{
+    position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--oro);color:#1a1428;
+    font-size:.6rem;font-weight:700;letter-spacing:.06em;padding:.25rem .6rem;border-radius:999px;white-space:nowrap;
+  }
+  .plan-opcion-nombre{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--texto-suave)}
+  .plan-opcion.destacado .plan-opcion-nombre{color:var(--oro-claro)}
+  .plan-opcion-precio{font-family:var(--serif);font-size:1.3rem;color:var(--marfil);font-weight:600}
+  .plan-opcion-precio small{font-family:var(--sans);font-size:.65rem;color:var(--texto-suave);font-weight:400}
+
   .compat-par{display:flex;gap:1rem;margin-bottom:1.1rem}
   .compat-persona{flex:1;text-align:center;padding:1rem;border:1px solid var(--linea);border-radius:6px}
   .compat-persona h4{font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.5rem;font-weight:600}
@@ -1024,8 +1042,18 @@ async function cargarPremium() {
       cont.innerHTML =
         '<div class="premium-banner">' + SELLO_SVG +
         '<div class="precio">Desbloquea todo</div>' +
-        '<p style="font-size:.85rem;color:var(--texto-suave);margin-bottom:1.2rem">Audio narrado + compatibilidad con otras personas</p>' +
-        '<button class="btn btn-oro btn-shimmer" onclick="pagarPremium()">Activar con Wompi</button></div>' +
+        '<p style="font-size:.85rem;color:var(--texto-suave);margin-bottom:1.4rem">Audio narrado + compatibilidad con otras personas</p>' +
+        '<div class="planes-premium">' +
+          '<button class="plan-opcion" onclick="pagarPremium(\'mensual\')">' +
+            '<span class="plan-opcion-nombre">Mensual</span>' +
+            '<span class="plan-opcion-precio">$39.900<small>/mes</small></span>' +
+          '</button>' +
+          '<button class="plan-opcion destacado" onclick="pagarPremium(\'anual\')">' +
+            '<span class="plan-opcion-etiqueta">2 meses gratis</span>' +
+            '<span class="plan-opcion-nombre">Anual</span>' +
+            '<span class="plan-opcion-precio">$399.000<small>/año</small></span>' +
+          '</button>' +
+        '</div></div>' +
         '<div id="referidos-caja"></div>';
     }
     cargarCodigoReferido();
@@ -1070,7 +1098,7 @@ async function compartirCodigoReferido(codigo) {
   }
 }
 
-async function pagarPremium() {
+async function pagarPremium(plan) {
   const sesion = obtenerSesion();
   try {
     const r = await llamarAPI("/pagos/wompi/crear-link", {
@@ -1078,6 +1106,7 @@ async function pagarPremium() {
       body: JSON.stringify({
         usuario_id: sesion.usuarioId,
         url_redireccion: window.location.href,
+        plan: plan || "mensual",
       }),
     });
     const d = await r.json();
