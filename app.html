@@ -116,6 +116,66 @@
   .resumen-carta strong{display:block;color:var(--oro-claro);font-family:var(--serif);font-size:1.25rem;font-weight:600}
   .resumen-carta span{font-size:.66rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.1em}
 
+  /* ---------- Wizard de bienvenida ---------- */
+  .wizard-wrap{
+    min-height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;text-align:center;
+  }
+  .orbe{
+    position:absolute;border-radius:50%;filter:blur(60px);pointer-events:none;z-index:0;
+    opacity:.35;
+  }
+  .orbe-1{width:340px;height:340px;background:radial-gradient(circle,var(--oro),transparent 70%);top:-8%;left:-12%;animation:flotar1 22s ease-in-out infinite}
+  .orbe-2{width:280px;height:280px;background:radial-gradient(circle,var(--luna),transparent 70%);bottom:-10%;right:-10%;animation:flotar2 26s ease-in-out infinite}
+  @keyframes flotar1{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,30px)}}
+  @keyframes flotar2{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,-40px)}}
+
+  .progreso{display:flex;gap:.5rem;margin-bottom:2.4rem;position:relative;z-index:1}
+  .progreso .punto{width:7px;height:7px;border-radius:50%;background:var(--linea);transition:all .3s}
+  .progreso .punto.activo{background:var(--oro);width:22px;border-radius:4px}
+  .progreso .punto.completo{background:var(--oro-claro)}
+
+  .paso-wizard{
+    display:none;flex-direction:column;align-items:center;width:100%;max-width:420px;
+    position:relative;z-index:1;animation:entrarPaso .5s ease;
+  }
+  .paso-wizard.activo{display:flex}
+  @keyframes entrarPaso{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .wizard-titulo{font-size:clamp(1.7rem,5vw,2.3rem);margin:.6rem 0 1.6rem;line-height:1.15}
+  .centro.eyebrow{display:block}
+  .input-wizard{
+    width:100%;background:transparent;border:none;border-bottom:1px solid var(--linea);
+    color:var(--marfil);padding:.8rem .2rem;font-size:1.3rem;font-family:var(--serif);
+    text-align:center;border-radius:0;margin-bottom:1.6rem;transition:border-color .2s;
+  }
+  .input-wizard:focus{outline:none;border-bottom-color:var(--oro)}
+  .input-wizard::placeholder{color:var(--texto-suave);font-family:var(--sans);font-size:1rem}
+  .wizard-nota{font-size:.8rem;color:var(--texto-suave);margin-bottom:1.4rem;line-height:1.5}
+
+  .check-sutil{
+    display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--texto-suave);
+    margin-bottom:.8rem;cursor:pointer;justify-content:center;
+  }
+  .check-sutil input{width:auto;margin:0;accent-color:var(--oro)}
+
+  .btn-shimmer{position:relative;overflow:hidden;background:linear-gradient(105deg,var(--oro) 0%,var(--oro-claro) 50%,var(--oro) 100%);background-size:220% 100%;animation:shimmer 3.5s ease-in-out infinite}
+  @keyframes shimmer{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
+
+  /* ---------- Pantalla de revelación ---------- */
+  #pantalla-revelacion{
+    position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+    background:var(--noche);overflow:hidden;
+  }
+  .rueda-revelacion{position:absolute;width:min(140vw,900px);height:min(140vw,900px);opacity:.55}
+  .rueda-giro-lenta{animation:girarRevelacion 40s linear infinite}
+  @keyframes girarRevelacion{to{transform:rotate(360deg)}}
+  .texto-revelacion{
+    position:relative;z-index:1;font-family:var(--serif);font-style:italic;color:var(--oro-claro);
+    font-size:1.3rem;text-align:center;padding:0 1.5rem;animation:pulsarTexto 1.8s ease-in-out infinite;
+  }
+  @keyframes pulsarTexto{0%,100%{opacity:.55}50%{opacity:1}}
+
   .compat-par{display:flex;gap:1rem;margin-bottom:1.1rem}
   .compat-persona{flex:1;text-align:center;padding:1rem;border:1px solid var(--linea);border-radius:6px}
   .compat-persona h4{font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.5rem;font-weight:600}
@@ -136,32 +196,68 @@
   <button class="link-sutil oculto" id="btn-cambiar-cuenta" onclick="cerrarSesion()">Cambiar de cuenta</button>
 </header>
 
-<div id="pantalla-onboarding" class="wrap">
-  <div class="centro" style="margin:1rem 0 1.8rem">
-    <span class="eyebrow">Bienvenida</span>
-    <h1 style="font-size:2rem;margin-top:.5rem">Tu cielo, cada mañana</h1>
-    <p style="color:var(--texto-suave);margin-top:.6rem;font-size:.9rem">
-      Ingresa tus datos de nacimiento una sola vez — a partir de ahí, tu guía diaria te espera.
-    </p>
+<div id="pantalla-onboarding" class="wrap wizard-wrap">
+  <div class="orbe orbe-1"></div>
+  <div class="orbe orbe-2"></div>
+
+  <div class="progreso" id="wizard-progreso">
+    <span class="punto activo" data-paso="0"></span>
+    <span class="punto" data-paso="1"></span>
+    <span class="punto" data-paso="2"></span>
+    <span class="punto" data-paso="3"></span>
+    <span class="punto" data-paso="4"></span>
   </div>
 
-  <div class="card">
-    <label>Tu correo</label>
-    <input type="email" id="ob-correo" placeholder="tú@correo.com" autocomplete="email">
+  <!-- Paso 0: nombre -->
+  <div class="paso-wizard activo" data-paso="0">
+    <span class="eyebrow centro">Bienvenida</span>
+    <h1 class="wizard-titulo">¿Cómo te llamas?</h1>
+    <input type="text" id="ob-nombre" class="input-wizard" placeholder="Tu nombre" autocomplete="given-name">
+    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(0)">Continuar</button>
+  </div>
 
-    <label>Fecha de nacimiento</label>
-    <input type="date" id="ob-fecha">
-
-    <label>Hora de nacimiento</label>
-    <input type="time" id="ob-hora">
-
-    <label>Ciudad de nacimiento</label>
-    <input type="text" id="ob-ciudad" list="lista-ciudades" placeholder="Ej: Medellín">
-    <datalist id="lista-ciudades"></datalist>
-
+  <!-- Paso 1: correo -->
+  <div class="paso-wizard" data-paso="1">
+    <span class="eyebrow centro">Un gusto, <span id="saludo-nombre">viajera</span></span>
+    <h1 class="wizard-titulo">¿Cuál es tu correo?</h1>
+    <p class="wizard-nota">Así guardamos tu cuenta y tu historial.</p>
+    <input type="email" id="ob-correo" class="input-wizard" placeholder="tú@correo.com" autocomplete="email">
     <div id="ob-error" class="error-msg oculto"></div>
-    <button class="btn btn-oro" onclick="iniciarSesion()">Ver mi guía de hoy</button>
-    <p style="font-size:.72rem;color:var(--texto-suave);text-align:center;margin-top:.9rem">
+    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(1)">Continuar</button>
+  </div>
+
+  <!-- Paso 2: fecha -->
+  <div class="paso-wizard" data-paso="2">
+    <span class="eyebrow centro">El cielo lo recuerda</span>
+    <h1 class="wizard-titulo">¿Cuándo llegaste al mundo?</h1>
+    <input type="date" id="ob-fecha" class="input-wizard">
+    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(2)">Continuar</button>
+  </div>
+
+  <!-- Paso 3: hora -->
+  <div class="paso-wizard" data-paso="3">
+    <span class="eyebrow centro">Precisión de observatorio</span>
+    <h1 class="wizard-titulo">¿A qué hora naciste?</h1>
+    <input type="time" id="ob-hora" class="input-wizard">
+    <label class="check-sutil">
+      <input type="checkbox" id="ob-hora-desconocida" onchange="alternarHoraDesconocida()">
+      No sé mi hora exacta
+    </label>
+    <p class="wizard-nota" id="nota-hora-desconocida" style="display:none">
+      Usaremos el mediodía como aproximación. Tu Sol y numerología seguirán siendo exactos —
+      solo tu Ascendente podría variar.
+    </p>
+    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(3)">Continuar</button>
+  </div>
+
+  <!-- Paso 4: ciudad -->
+  <div class="paso-wizard" data-paso="4">
+    <span class="eyebrow centro">Último paso</span>
+    <h1 class="wizard-titulo">¿En qué ciudad naciste?</h1>
+    <input type="text" id="ob-ciudad" class="input-wizard" list="lista-ciudades" placeholder="Ej: Medellín">
+    <datalist id="lista-ciudades"></datalist>
+    <button class="btn btn-oro btn-shimmer" onclick="iniciarSesion()">Revelar mi cielo</button>
+    <p style="font-size:.7rem;color:var(--texto-suave);text-align:center;margin-top:1.1rem">
       Al continuar, aceptas nuestra
       <a href="privacidad.html" style="color:var(--oro-claro)">Política de Privacidad</a>
       y
@@ -169,6 +265,27 @@
     </p>
   </div>
 </div>
+
+<!-- Pantalla de revelación -->
+<div id="pantalla-revelacion" class="oculto">
+  <svg class="rueda-revelacion rueda-giro-lenta" viewBox="0 0 800 800" aria-hidden="true">
+    <defs>
+      <linearGradient id="foilRev" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8c6d2f"/><stop offset=".5" stop-color="#f0dca8"/><stop offset="1" stop-color="#8c6d2f"/>
+      </linearGradient>
+    </defs>
+    <circle cx="400" cy="400" r="390" fill="none" stroke="url(#foilRev)" stroke-width="1"/>
+    <circle cx="400" cy="400" r="300" fill="none" stroke="url(#foilRev)" stroke-width=".6"/>
+    <circle cx="400" cy="400" r="200" fill="none" stroke="url(#foilRev)" stroke-width=".6"/>
+    <g fill="url(#foilRev)" font-size="30" font-family="serif" text-anchor="middle">
+      <text x="400" y="52">♈</text><text x="576" y="100">♉</text><text x="706" y="230">♊</text><text x="755" y="410">♋</text>
+      <text x="706" y="588">♌</text><text x="576" y="716">♍</text><text x="400" y="766">♎</text><text x="224" y="716">♏</text>
+      <text x="94" y="588">♐</text><text x="45" y="410">♑</text><text x="94" y="230">♒</text><text x="224" y="100">♓</text>
+    </g>
+  </svg>
+  <div class="texto-revelacion" id="texto-revelacion">Consultando tu cielo…</div>
+</div>
+
 
 <div id="pantalla-app" class="wrap oculto">
   <nav class="tabs">
@@ -219,25 +336,29 @@
 <script>
 const API = "https://oraculo-astral-api.onrender.com";
 
-function guardarSesion(usuarioId, token, datosNacimiento) {
+function guardarSesion(usuarioId, token, datosNacimiento, nombre) {
   localStorage.setItem("oa_usuario_id", usuarioId);
   localStorage.setItem("oa_token", token);
   localStorage.setItem("oa_nacimiento", JSON.stringify(datosNacimiento));
+  if (nombre) localStorage.setItem("oa_nombre", nombre);
 }
 function obtenerSesion() {
   const usuarioId = localStorage.getItem("oa_usuario_id");
   const token = localStorage.getItem("oa_token");
   const nacimiento = JSON.parse(localStorage.getItem("oa_nacimiento") || "null");
-  return usuarioId && token && nacimiento ? { usuarioId, token, nacimiento } : null;
+  const nombre = localStorage.getItem("oa_nombre") || "";
+  return usuarioId && token && nacimiento ? { usuarioId, token, nacimiento, nombre } : null;
 }
 function cerrarSesion() {
   if (!confirm("¿Cambiar de cuenta? Vas a tener que ingresar tus datos de nuevo.")) return;
   localStorage.removeItem("oa_usuario_id");
   localStorage.removeItem("oa_token");
   localStorage.removeItem("oa_nacimiento");
+  localStorage.removeItem("oa_nombre");
   document.getElementById("pantalla-app").classList.add("oculto");
   document.getElementById("pantalla-onboarding").classList.remove("oculto");
   document.getElementById("btn-cambiar-cuenta").classList.add("oculto");
+  wizardIrAPaso(0);
 }
 
 async function llamarAPI(ruta, opciones) {
@@ -271,19 +392,89 @@ async function cargarCiudades() {
 }
 cargarCiudades();
 
+// ---------- Wizard de bienvenida ----------
+let wizardPasoActual = 0;
+const WIZARD_TOTAL_PASOS = 5;
+
+function wizardIrAPaso(n) {
+  wizardPasoActual = n;
+  document.querySelectorAll(".paso-wizard").forEach(function(p) {
+    p.classList.toggle("activo", Number(p.dataset.paso) === n);
+  });
+  document.querySelectorAll("#wizard-progreso .punto").forEach(function(p) {
+    const idx = Number(p.dataset.paso);
+    p.classList.toggle("activo", idx === n);
+    p.classList.toggle("completo", idx < n);
+  });
+  const primerInput = document.querySelector('.paso-wizard[data-paso="' + n + '"] input');
+  if (primerInput) setTimeout(function() { primerInput.focus(); }, 150);
+}
+
+function wizardSiguiente(pasoActual) {
+  if (pasoActual === 0) {
+    const nombre = document.getElementById("ob-nombre").value.trim();
+    document.getElementById("saludo-nombre").textContent = nombre || "viajera";
+  }
+  if (pasoActual === 1) {
+    const correo = document.getElementById("ob-correo").value.trim();
+    const errorEl = document.getElementById("ob-error");
+    if (!correo || !correo.includes("@")) {
+      errorEl.textContent = "Escribe un correo válido para continuar.";
+      errorEl.classList.remove("oculto");
+      return;
+    }
+    errorEl.classList.add("oculto");
+  }
+  if (pasoActual === 2 && !document.getElementById("ob-fecha").value) return;
+  if (pasoActual === 3 && !document.getElementById("ob-hora").value) return;
+
+  wizardIrAPaso(pasoActual + 1);
+}
+
+function alternarHoraDesconocida() {
+  const marcado = document.getElementById("ob-hora-desconocida").checked;
+  const inputHora = document.getElementById("ob-hora");
+  const nota = document.getElementById("nota-hora-desconocida");
+  if (marcado) {
+    inputHora.value = "12:00";
+    inputHora.disabled = true;
+    nota.style.display = "block";
+  } else {
+    inputHora.disabled = false;
+    inputHora.value = "";
+    nota.style.display = "none";
+  }
+}
+
+const FRASES_REVELACION = [
+  "Consultando tu cielo…",
+  "Calculando la posición de tus planetas…",
+  "Tejiendo tu carta natal…",
+  "Encontrando tu Sol y tu Luna…",
+];
+
 async function iniciarSesion() {
+  const nombre = document.getElementById("ob-nombre").value.trim();
   const correo = document.getElementById("ob-correo").value.trim();
   const fecha = document.getElementById("ob-fecha").value;
   const hora = document.getElementById("ob-hora").value;
   const ciudad = document.getElementById("ob-ciudad").value.trim();
-  const errorEl = document.getElementById("ob-error");
-  errorEl.classList.add("oculto");
 
   if (!correo || !fecha || !hora || !ciudad) {
-    errorEl.textContent = "Completa todos los campos para continuar.";
-    errorEl.classList.remove("oculto");
+    wizardIrAPaso(!correo ? 1 : !fecha ? 2 : !hora ? 3 : 4);
     return;
   }
+
+  // Mostrar la pantalla de revelación con frases rotando
+  document.getElementById("pantalla-onboarding").classList.add("oculto");
+  const pantallaRev = document.getElementById("pantalla-revelacion");
+  pantallaRev.classList.remove("oculto");
+  const textoRev = document.getElementById("texto-revelacion");
+  let indiceFrase = 0;
+  const intervaloFrases = setInterval(function() {
+    indiceFrase = (indiceFrase + 1) % FRASES_REVELACION.length;
+    textoRev.textContent = FRASES_REVELACION[indiceFrase];
+  }, 1100);
 
   try {
     const r = await fetch(API + "/auth/generar-token", {
@@ -294,13 +485,22 @@ async function iniciarSesion() {
     if (!r.ok) throw new Error("No se pudo crear tu sesión.");
     const datos = await r.json();
 
-    guardarSesion(correo, datos.token, { fecha: fecha, hora: hora, ciudad: ciudad });
+    guardarSesion(correo, datos.token, { fecha: fecha, hora: hora, ciudad: ciudad }, nombre);
 
-    document.getElementById("pantalla-onboarding").classList.add("oculto");
+    // Dejamos ver la animación al menos un momento, para que se sienta como un ritual
+    await new Promise(function(resolve) { setTimeout(resolve, 2200); });
+
+    clearInterval(intervaloFrases);
+    pantallaRev.classList.add("oculto");
     document.getElementById("pantalla-app").classList.remove("oculto");
     document.getElementById("btn-cambiar-cuenta").classList.remove("oculto");
     cambiarTab("hoy");
   } catch (e) {
+    clearInterval(intervaloFrases);
+    pantallaRev.classList.add("oculto");
+    document.getElementById("pantalla-onboarding").classList.remove("oculto");
+    wizardIrAPaso(4);
+    const errorEl = document.getElementById("ob-error");
     errorEl.textContent = e.message || "Algo salió mal. Intenta de nuevo.";
     errorEl.classList.remove("oculto");
   }
@@ -337,7 +537,11 @@ async function cargarLecturaHoy() {
     const d = await r.json();
 
     cont.className = "";
+    const saludo = sesion.nombre
+      ? '<p class="centro" style="font-family:var(--serif);font-style:italic;color:var(--oro-claro);font-size:1.1rem;margin-bottom:1.4rem">Hola, ' + sesion.nombre + ' ✦</p>'
+      : "";
     cont.innerHTML =
+      saludo +
       '<div class="resumen-carta">' +
         '<div><strong>' + d.carta_natal_resumen.sol.signo + '</strong><span>Sol</span></div>' +
         '<div><strong>' + d.carta_natal_resumen.luna.signo + '</strong><span>Luna</span></div>' +
