@@ -230,6 +230,28 @@
   .audio-modulo audio{margin-top:0}
   @media (max-width:480px){.audio-modulo{flex-direction:column;text-align:center}}
 
+  /* ---------- Compartir ---------- */
+  .btn-compartir{
+    width:100%;margin-top:.9rem;background:transparent;border:1px solid var(--linea);
+    color:var(--oro-claro);padding:.85rem 1.2rem;border-radius:8px;font-size:.85rem;
+    cursor:pointer;font-family:var(--sans);display:flex;align-items:center;justify-content:center;gap:.6rem;
+    transition:border-color .2s,background .2s;
+  }
+  .btn-compartir:hover{border-color:var(--oro);background:rgba(212,175,106,.06)}
+  .btn-compartir .icono-compartir{font-size:1rem}
+
+  #modal-compartir{
+    position:fixed;inset:0;z-index:300;background:rgba(6,4,9,.92);backdrop-filter:blur(6px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;
+  }
+  #modal-compartir img{max-width:min(320px,80vw);max-height:62vh;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);margin-bottom:1.4rem}
+  .modal-compartir-botones{display:flex;gap:.7rem;width:100%;max-width:320px}
+  .modal-compartir-botones .btn{flex:1;padding:.8rem 1rem;font-size:.75rem}
+  .modal-compartir-cerrar{
+    margin-top:1.1rem;background:none;border:none;color:var(--texto-suave);
+    font-size:.8rem;cursor:pointer;text-decoration:underline;
+  }
+
   .compat-par{display:flex;gap:1rem;margin-bottom:1.1rem}
   .compat-persona{flex:1;text-align:center;padding:1rem;border:1px solid var(--linea);border-radius:6px}
   .compat-persona h4{font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.5rem;font-weight:600}
@@ -358,6 +380,15 @@
   <div class="texto-revelacion" id="texto-revelacion">Consultando tu cielo…</div>
 </div>
 
+
+<div id="modal-compartir" class="oculto">
+  <img id="img-compartir" alt="Tu tarjeta para compartir">
+  <div class="modal-compartir-botones">
+    <a class="btn btn-oro" id="btn-descargar-tarjeta" download="oraculo-astral-mi-lectura.png">Descargar</a>
+    <button class="btn btn-linea" id="btn-compartir-nativo" onclick="compartirTarjetaNativo()">Compartir</button>
+  </div>
+  <button class="modal-compartir-cerrar" onclick="cerrarModalCompartir()">Cerrar</button>
+</div>
 
 <div id="pantalla-app" class="wrap oculto">
   <nav class="tabs">
@@ -497,6 +528,7 @@ let wizardPasoActual = 0;
 const WIZARD_TOTAL_PASOS = 5;
 let tokenActual = null;      // token obtenido (nuevo registro o recuperación)
 let correoEnProceso = null;  // correo que se está registrando/recuperando
+let ultimaLecturaHoy = null; // última lectura cargada, para generar la tarjeta de compartir
 
 function wizardIrAPaso(n) {
   wizardPasoActual = n;
@@ -722,6 +754,7 @@ async function cargarLecturaHoy() {
       }),
     });
     const d = await r.json();
+    ultimaLecturaHoy = d;
 
     cont.className = "";
     const saludo = sesion.nombre
@@ -746,7 +779,8 @@ async function cargarLecturaHoy() {
           '<div class="subtitulo" id="audio-subtitulo">Tu ritual de la mañana, sin leer una sola línea · Premium</div>' +
         '</div>' +
       '</div>' +
-      '<div id="audio-hoy"></div>';
+      '<div id="audio-hoy"></div>' +
+      '<button class="btn-compartir" onclick="generarTarjetaCompartir()"><span class="icono-compartir">✦</span>Compartir mi carta de hoy</button>';
   } catch (e) {
     cont.className = "error-msg";
     cont.textContent = e.message;
@@ -953,6 +987,159 @@ async function pagarPremium() {
     alert("No se pudo generar el link de pago: " + e.message);
   }
 }
+
+// ---------- Tarjeta para compartir ----------
+const GLIFOS_SIGNOS = {
+  "Aries": "♈", "Tauro": "♉", "Géminis": "♊", "Cáncer": "♋", "Leo": "♌", "Virgo": "♍",
+  "Libra": "♎", "Escorpio": "♏", "Sagitario": "♐", "Capricornio": "♑", "Acuario": "♒", "Piscis": "♓",
+};
+const URL_COMPARTIR = "oraculoastral1.github.io/oraculo-astral";
+
+async function generarTarjetaCompartir() {
+  if (!ultimaLecturaHoy) {
+    alert("Espera a que cargue tu lectura de hoy antes de compartirla.");
+    return;
+  }
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+  const d = ultimaLecturaHoy;
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1920;
+  const ctx = canvas.getContext("2d");
+
+  // Fondo degradado oscuro
+  const fondo = ctx.createLinearGradient(0, 0, 0, 1920);
+  fondo.addColorStop(0, "#150f2c");
+  fondo.addColorStop(1, "#070510");
+  ctx.fillStyle = fondo;
+  ctx.fillRect(0, 0, 1080, 1920);
+
+  // Estrellas sutiles
+  ctx.fillStyle = "rgba(255,255,255,.55)";
+  for (let i = 0; i < 70; i++) {
+    const x = Math.random() * 1080, y = Math.random() * 1750, r = Math.random() * 1.6 + .3;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Wordmark
+  ctx.textAlign = "left";
+  ctx.font = "700 44px Fraunces, serif";
+  const wOraculo = ctx.measureText("Oráculo ").width;
+  ctx.font = "italic 600 44px Fraunces, serif";
+  const wAstral = ctx.measureText("Astral").width;
+  let startX = (1080 - wOraculo - wAstral) / 2;
+  ctx.fillStyle = "#f5efe2";
+  ctx.font = "700 44px Fraunces, serif";
+  ctx.fillText("Oráculo ", startX, 155);
+  ctx.fillStyle = "#d4af6a";
+  ctx.font = "italic 600 44px Fraunces, serif";
+  ctx.fillText("Astral", startX + wOraculo, 155);
+
+  // Círculos decorativos (rueda simplificada)
+  ctx.strokeStyle = "rgba(212,175,106,.55)";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(540, 720, 300, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(212,175,106,.3)";
+  ctx.beginPath(); ctx.arc(540, 720, 230, 0, Math.PI * 2); ctx.stroke();
+
+  // Sol / Luna / Ascendente alrededor del círculo
+  const puntos = [
+    { angulo: -90, signo: d.carta_natal_resumen.sol.signo, etiqueta: "SOL" },
+    { angulo: 30, signo: d.carta_natal_resumen.luna.signo, etiqueta: "LUNA" },
+    { angulo: 150, signo: d.carta_natal_resumen.ascendente.signo, etiqueta: "ASCENDENTE" },
+  ];
+  puntos.forEach(function(p) {
+    const rad = (p.angulo * Math.PI) / 180;
+    const x = 540 + 300 * Math.cos(rad);
+    const y = 720 + 300 * Math.sin(rad);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f0dca8";
+    ctx.font = "60px serif";
+    ctx.fillText(GLIFOS_SIGNOS[p.signo] || "✦", x, y + 20);
+    ctx.fillStyle = "#8b84a3";
+    ctx.font = "600 22px Inter, sans-serif";
+    ctx.fillText(p.etiqueta, x, y + 65);
+    ctx.fillStyle = "#f5efe2";
+    ctx.font = "600 30px Fraunces, serif";
+    ctx.fillText(p.signo, x, y + 105);
+  });
+
+  // Centro del círculo
+  ctx.fillStyle = "#d4af6a";
+  ctx.font = "80px serif";
+  ctx.textAlign = "center";
+  ctx.fillText("☉", 540, 745);
+
+  // Tarot
+  ctx.fillStyle = "#d4af6a";
+  ctx.font = "600 26px Inter, sans-serif";
+  ctx.fillText("TAROT DEL DÍA", 540, 1140);
+  ctx.fillStyle = "#f5efe2";
+  ctx.font = "italic 600 58px Fraunces, serif";
+  ctx.fillText(d.tarot.carta, 540, 1220);
+  ctx.fillStyle = "#8b84a3";
+  ctx.font = "28px Inter, sans-serif";
+  ctx.fillText("(" + d.tarot.orientacion + ")", 540, 1265);
+
+  // Divisor
+  ctx.strokeStyle = "rgba(212,175,106,.3)";
+  ctx.beginPath(); ctx.moveTo(340, 1330); ctx.lineTo(490, 1330); ctx.stroke();
+  ctx.fillStyle = "#d4af6a";
+  ctx.font = "26px serif";
+  ctx.fillText("✦", 540, 1340);
+  ctx.beginPath(); ctx.moveTo(590, 1330); ctx.lineTo(740, 1330); ctx.stroke();
+
+  // Camino de vida
+  ctx.fillStyle = "#8b84a3";
+  ctx.font = "600 24px Inter, sans-serif";
+  ctx.fillText("CAMINO DE VIDA · " + d.numerologia.numero, 540, 1410);
+
+  // Frase de cierre
+  ctx.fillStyle = "#f0dca8";
+  ctx.font = "italic 400 34px Fraunces, serif";
+  ctx.fillText("Tu cielo, leído cada mañana", 540, 1620);
+
+  // CTA
+  ctx.fillStyle = "#8b84a3";
+  ctx.font = "24px Inter, sans-serif";
+  ctx.fillText("Recibe tu lectura gratis en", 540, 1760);
+  ctx.fillStyle = "#d4af6a";
+  ctx.font = "600 26px Inter, sans-serif";
+  ctx.fillText(URL_COMPARTIR, 540, 1795);
+
+  canvas.toBlob(function(blob) {
+    const url = URL.createObjectURL(blob);
+    document.getElementById("img-compartir").src = url;
+    document.getElementById("btn-descargar-tarjeta").href = url;
+    window._blobTarjetaCompartir = blob;
+    document.getElementById("modal-compartir").classList.remove("oculto");
+  }, "image/png");
+}
+
+function cerrarModalCompartir() {
+  document.getElementById("modal-compartir").classList.add("oculto");
+}
+
+async function compartirTarjetaNativo() {
+  const blob = window._blobTarjetaCompartir;
+  if (!blob) return;
+  const archivo = new File([blob], "oraculo-astral-mi-lectura.png", { type: "image/png" });
+
+  if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    try {
+      await navigator.share({
+        files: [archivo],
+        title: "Mi lectura de Oráculo Astral",
+        text: "Esto me dijo el cielo hoy ✦",
+      });
+    } catch (e) {} // la persona canceló el share, no pasa nada
+  } else {
+    alert("Tu navegador no soporta compartir directo — usa el botón \"Descargar\" y compártela desde tu galería.");
+  }
+}
+
 
 (function iniciar() {
   const sesion = obtenerSesion();
