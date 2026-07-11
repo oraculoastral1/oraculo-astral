@@ -1,14 +1,14 @@
 """
-Motor de pagos con Wompi — Fase 8.
+Motor de pagos con Wompi — Fase 8 (v2 con plan anual).
 
 Nota honesta sobre el alcance: Wompi, a diferencia de Stripe, no maneja
 "suscripciones recurrentes" automáticas de forma sencilla — su fortaleza
 son los pagos únicos (tarjeta, PSE, Nequi). Por eso aquí implementamos un
-pago único que da 30 días de premium, renovable manualmente cada mes por
-la persona. Es una solución honesta para el volumen actual del proyecto;
-una automatización completa de cobro recurrente con Wompi requiere su API
-de "Suscripciones" con tokenización de tarjeta, que es un paso más
-avanzado para cuando el proyecto crezca.
+pago único que da premium por un número fijo de días (30 para el plan
+mensual, 365 para el anual), renovable manualmente por la persona. Es una
+solución honesta para el volumen actual del proyecto; una automatización
+completa de cobro recurrente con Wompi requiere su API de "Suscripciones"
+con tokenización de tarjeta, un paso más avanzado para cuando crezca.
 """
 import os
 import hashlib
@@ -17,27 +17,35 @@ import uuid
 from app.services.suscripciones import (
     activar_premium,
     registrar_pago_pendiente,
-    buscar_usuario_por_referencia,
+    buscar_pago_por_referencia,
 )
 
 WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/"
-DIAS_DE_PREMIUM_POR_PAGO = 30
+
+PLANES = {
+    "mensual": {"dias": 30, "variable_entorno": "WOMPI_MONTO_COP"},
+    "anual": {"dias": 365, "variable_entorno": "WOMPI_MONTO_COP_ANUAL"},
+}
 
 
-def generar_link_pago(usuario_id: str, url_redireccion: str) -> dict:
+def generar_link_pago(usuario_id: str, url_redireccion: str, plan: str = "mensual") -> dict:
     """
     Genera el enlace de pago de Wompi (Web Checkout) al que se redirige
     a la persona para pagar. Wompi solo acepta pesos colombianos (COP).
+    plan puede ser "mensual" (30 días) o "anual" (365 días, con descuento).
     """
+    if plan not in PLANES:
+        raise RuntimeError(f"Plan desconocido: {plan}. Debe ser 'mensual' o 'anual'.")
+
     llave_publica = os.environ.get("WOMPI_PUBLIC_KEY", "").strip()
     secreto_integridad = os.environ.get("WOMPI_INTEGRITY_SECRET", "").strip()
-    monto_cop = os.environ.get("WOMPI_MONTO_COP", "").strip()
+    monto_cop = os.environ.get(PLANES[plan]["variable_entorno"], "").strip()
+    dias_validez = PLANES[plan]["dias"]
 
     if not llave_publica or not secreto_integridad or not monto_cop:
         raise RuntimeError(
-            "Faltan configurar WOMPI_PUBLIC_KEY, WOMPI_INTEGRITY_SECRET y WOMPI_MONTO_COP "
-            "en las variables de entorno. WOMPI_MONTO_COP es el precio en pesos colombianos "
-            "equivalente a $14.99 USD — ajústalo según la tasa de cambio actual."
+            f"Faltan configurar WOMPI_PUBLIC_KEY, WOMPI_INTEGRITY_SECRET y "
+            f"{PLANES[plan]['variable_entorno']} en las variables de entorno."
         )
 
     monto_en_centavos = str(int(monto_cop) * 100)  # Wompi pide el monto en centavos de peso
@@ -57,7 +65,7 @@ def generar_link_pago(usuario_id: str, url_redireccion: str) -> dict:
         f"&redirect-url={url_redireccion}"
     )
 
-    registrar_pago_pendiente(usuario_id, referencia, proveedor="wompi")
+    registrar_pago_pendiente(usuario_id, referencia, proveedor="wompi", dias_plan=dias_validez)
 
     return {"url_pago": WOMPI_CHECKOUT_URL + parametros, "referencia": referencia}
 
@@ -83,7 +91,8 @@ def _verificar_checksum(datos_evento: dict, secreto_eventos: str) -> bool:
 def procesar_webhook(datos_evento: dict) -> dict:
     """
     Verifica que el evento venga realmente de Wompi, y si el pago fue
-    aprobado, activa 30 días de premium para la persona.
+    aprobado, activa el premium por los días que correspondan al plan
+    que esa persona eligió pagar (30 días mensual, 365 anual).
     """
     secreto_eventos = os.environ.get("WOMPI_EVENTS_SECRET", "").strip()
     if not secreto_eventos:
@@ -94,13 +103,13 @@ def procesar_webhook(datos_evento: dict) -> dict:
 
     transaccion = datos_evento["data"]["transaction"]
     if transaccion["status"] == "APPROVED":
-        usuario_id = buscar_usuario_por_referencia(transaccion["reference"])
-        if usuario_id:
+        pago = buscar_pago_por_referencia(transaccion["reference"])
+        if pago:
             activar_premium(
-                usuario_id,
+                pago["usuario_id"],
                 proveedor="wompi",
                 referencia_pago=transaccion["id"],
-                dias_validez=DIAS_DE_PREMIUM_POR_PAGO,
+                dias_validez=pago["dias_plan"],
             )
 
     return {"estado_transaccion": transaccion["status"], "procesado": True}
