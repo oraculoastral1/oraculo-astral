@@ -1,0 +1,15 @@
+{
+  "name": "Oráculo Astral",
+  "short_name": "Oráculo Astral",
+  "description": "Tu carta natal real, leída cada mañana.",
+  "start_url": "/oraculo-astral/app.html",
+  "scope": "/oraculo-astral/",
+  "display": "standalone",
+  "background_color": "#070510",
+  "theme_color": "#070510",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "iconos/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "iconos/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
