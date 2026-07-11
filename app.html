@@ -252,6 +252,19 @@
     font-size:.8rem;cursor:pointer;text-decoration:underline;
   }
 
+  /* ---------- Retorno solar ---------- */
+  .link-retorno{
+    display:block;text-align:center;font-size:.82rem;color:var(--oro-claro);
+    text-decoration:underline;margin:0 0 1.4rem;cursor:pointer;background:none;border:none;
+    font-family:var(--sans);width:100%;
+  }
+  #modal-retorno{
+    position:fixed;inset:0;z-index:300;background:rgba(6,4,9,.94);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:1.5rem;overflow-y:auto;
+  }
+  .retorno-contenido{max-width:520px;width:100%;max-height:85vh;overflow-y:auto;padding:1rem}
+  .retorno-fecha{font-size:.75rem;color:var(--texto-suave);text-align:center;margin-bottom:1.2rem;letter-spacing:.04em}
+
   .compat-par{display:flex;gap:1rem;margin-bottom:1.1rem}
   .compat-persona{flex:1;text-align:center;padding:1rem;border:1px solid var(--linea);border-radius:6px}
   .compat-persona h4{font-family:var(--serif);color:var(--marfil);font-size:.95rem;margin-bottom:.5rem;font-weight:600}
@@ -388,6 +401,13 @@
     <button class="btn btn-linea" id="btn-compartir-nativo" onclick="compartirTarjetaNativo()">Compartir</button>
   </div>
   <button class="modal-compartir-cerrar" onclick="cerrarModalCompartir()">Cerrar</button>
+</div>
+
+<div id="modal-retorno" class="oculto">
+  <div class="retorno-contenido">
+    <div id="retorno-cuerpo" class="estado-msg">Buscando el momento exacto de tu retorno solar…</div>
+    <button class="modal-compartir-cerrar" onclick="document.getElementById('modal-retorno').classList.add('oculto')" style="display:block;margin:1.2rem auto 0">Cerrar</button>
+  </div>
 </div>
 
 <div id="pantalla-app" class="wrap oculto">
@@ -767,6 +787,7 @@ async function cargarLecturaHoy() {
         '<div><strong>' + d.carta_natal_resumen.luna.signo + '</strong><span>Luna</span></div>' +
         '<div><strong>' + d.carta_natal_resumen.ascendente.signo + '</strong><span>Ascendente</span></div>' +
       '</div>' +
+      '<button class="link-retorno" onclick="verRetornoSolar()">✦ Ver mi año astral (retorno solar)</button>' +
       '<div class="fila centro" style="justify-content:center;margin-bottom:1.2rem">' +
         '<span class="chip">Tarot · ' + d.tarot.carta + ' (' + d.tarot.orientacion + ')</span>' +
         '<span class="chip">Camino de vida · ' + d.numerologia.numero + '</span>' +
@@ -1180,6 +1201,50 @@ async function compartirTarjetaNativo() {
     } catch (e) {} // la persona canceló el share, no pasa nada
   } else {
     alert("Tu navegador no soporta compartir directo — usa el botón \"Descargar\" y compártela desde tu galería.");
+  }
+}
+
+
+// ---------- Retorno solar ----------
+async function verRetornoSolar() {
+  const sesion = obtenerSesion();
+  const modal = document.getElementById("modal-retorno");
+  const cuerpo = document.getElementById("retorno-cuerpo");
+  cuerpo.className = "estado-msg";
+  cuerpo.textContent = "Buscando el momento exacto de tu retorno solar…";
+  modal.classList.remove("oculto");
+
+  try {
+    const r = await llamarAPI("/retorno-solar/generar", {
+      method: "POST",
+      body: JSON.stringify({
+        usuario_id: sesion.usuarioId,
+        nombre: sesion.nombre || "",
+        fecha: sesion.nacimiento.fecha,
+        hora: sesion.nacimiento.hora,
+        ciudad: sesion.nacimiento.ciudad,
+      }),
+    });
+    const d = await r.json();
+    cuerpo.className = "";
+    cuerpo.innerHTML =
+      '<div class="centro" style="margin-bottom:1.2rem">' +
+        '<span class="eyebrow">Tu año astral ' + d.anio_retorno + '</span>' +
+        '<h2 style="font-size:1.5rem;margin-top:.4rem">Retorno Solar</h2>' +
+      '</div>' +
+      '<div class="resumen-carta">' +
+        '<div><strong>' + d.ascendente_retorno.signo + '</strong><span>Ascendente del año</span></div>' +
+        '<div><strong>Casa ' + d.sol_casa_retorno + '</strong><span>Dónde brilla tu Sol</span></div>' +
+      '</div>' +
+      '<div class="retorno-fecha">Momento exacto: ' + d.fecha_hora_exacta_utc + '</div>' +
+      '<div class="card lectura-card"><span class="ornamento">✦</span><p>' + d.lectura + '</p></div>';
+  } catch (e) {
+    cuerpo.className = "error-msg";
+    if (e.status === 402) {
+      cuerpo.innerHTML = 'El retorno solar es una función premium. Ve a la pestaña <a href="#" onclick="document.getElementById(\'modal-retorno\').classList.add(\'oculto\');cambiarTab(\'premium\');return false" style="color:var(--oro-claro)">Premium</a> para activarlo.';
+    } else {
+      cuerpo.textContent = e.message;
+    }
   }
 }
 
