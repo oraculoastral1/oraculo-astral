@@ -361,6 +361,7 @@
     <h1 class="wizard-titulo">¿En qué ciudad naciste?</h1>
     <input type="text" id="ob-ciudad" class="input-wizard" list="lista-ciudades" placeholder="Ej: Medellín">
     <datalist id="lista-ciudades"></datalist>
+    <input type="text" id="ob-codigo-referido" class="input-wizard" placeholder="Código de invitación (opcional)" style="font-size:.95rem;text-transform:uppercase">
     <button class="btn btn-oro btn-shimmer" onclick="completarRegistro()">Revelar mi cielo</button>
     <p style="font-size:.7rem;color:var(--texto-suave);text-align:center;margin-top:1.1rem">
       Al continuar, aceptas nuestra
@@ -763,6 +764,17 @@ async function completarRegistro() {
 
   guardarSesion(correoEnProceso, tokenActual, { fecha: fecha, hora: hora, ciudad: ciudad }, nombre);
 
+  // Si puso un código de invitación, lo canjeamos en segundo plano —
+  // si falla (código inválido, ya usado, etc.) no le arruinamos el registro
+  const codigoReferido = document.getElementById("ob-codigo-referido").value.trim();
+  if (codigoReferido) {
+    fetch(API + "/referidos/canjear", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Access-Token": tokenActual },
+      body: JSON.stringify({ usuario_id: correoEnProceso, codigo: codigoReferido }),
+    }).catch(function() {});
+  }
+
   // Dejamos ver la animación al menos un momento, para que se sienta como un ritual
   await new Promise(function(resolve) { setTimeout(resolve, 2200); });
 
@@ -1005,18 +1017,56 @@ async function cargarPremium() {
       cont.innerHTML =
         '<div class="premium-banner">' + SELLO_SVG +
         '<div class="precio">Premium activo</div>' +
-        '<p style="font-size:.85rem;color:var(--texto-suave)">Vence el ' + vence + '</p></div>';
+        '<p style="font-size:.85rem;color:var(--texto-suave)">Vence el ' + vence + '</p></div>' +
+        '<div id="referidos-caja"></div>';
     } else {
       cont.className = "";
       cont.innerHTML =
         '<div class="premium-banner">' + SELLO_SVG +
         '<div class="precio">Desbloquea todo</div>' +
         '<p style="font-size:.85rem;color:var(--texto-suave);margin-bottom:1.2rem">Audio narrado + compatibilidad con otras personas</p>' +
-        '<button class="btn btn-oro btn-shimmer" onclick="pagarPremium()">Activar con Wompi</button></div>';
+        '<button class="btn btn-oro btn-shimmer" onclick="pagarPremium()">Activar con Wompi</button></div>' +
+        '<div id="referidos-caja"></div>';
     }
+    cargarCodigoReferido();
   } catch (e) {
     cont.className = "error-msg";
     cont.textContent = e.message;
+  }
+}
+
+async function cargarCodigoReferido() {
+  const sesion = obtenerSesion();
+  const caja = document.getElementById("referidos-caja");
+  if (!caja) return;
+  caja.innerHTML = '<p class="estado-msg">Cargando tu código de invitación…</p>';
+
+  try {
+    const r = await llamarAPI("/referidos/mi-codigo/" + encodeURIComponent(sesion.usuarioId));
+    const d = await r.json();
+    caja.innerHTML =
+      '<div class="card" style="text-align:center;margin-top:1rem">' +
+        '<span class="eyebrow">Invita y ganen ambas</span>' +
+        '<h3 style="font-family:var(--serif);color:var(--marfil);margin:.5rem 0 1rem">7 días premium gratis</h3>' +
+        '<div style="font-family:var(--serif);font-size:1.6rem;letter-spacing:.15em;color:var(--oro-claro);border:1px dashed var(--linea);border-radius:8px;padding:.9rem;margin-bottom:1rem">' + d.codigo + '</div>' +
+        '<button class="btn btn-linea" onclick="compartirCodigoReferido(\'' + d.codigo + '\')">Compartir mi código</button>' +
+      '</div>';
+  } catch (e) {
+    caja.innerHTML = '';
+  }
+}
+
+async function compartirCodigoReferido(codigo) {
+  const texto = "Te invito a Oráculo Astral \u2728 Usa mi código " + codigo + " al registrarte y ambas ganamos 7 días premium gratis: https://oraculoastral1.github.io/oraculo-astral/app.html";
+  if (navigator.share) {
+    try { await navigator.share({ title: "Oráculo Astral", text: texto }); } catch (e) {}
+  } else {
+    try {
+      await navigator.clipboard.writeText(texto);
+      alert("¡Copiado! Pégalo donde quieras compartirlo.");
+    } catch (e) {
+      alert("Tu código es: " + codigo);
+    }
   }
 }
 
