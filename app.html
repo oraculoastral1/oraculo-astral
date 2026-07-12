@@ -1015,6 +1015,7 @@ async function escucharLecturaHoy() {
 }
 
 async function interpretarSueno() {
+  const sesion = obtenerSesion();
   const texto = document.getElementById("sueno-texto").value.trim();
   const cont = document.getElementById("sueno-resultado");
   if (!texto) return;
@@ -1023,17 +1024,20 @@ async function interpretarSueno() {
   cont.textContent = "Interpretando tu sueño…";
 
   try {
-    const r = await fetch(API + "/suenos/interpretar", {
+    const r = await llamarAPI("/suenos/interpretar", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ descripcion: texto }),
+      body: JSON.stringify({ usuario_id: sesion.usuarioId, descripcion: texto }),
     });
     const d = await r.json();
     cont.className = "";
     cont.innerHTML = '<div class="card"><p>' + d.interpretacion + '</p></div>';
   } catch (e) {
     cont.className = "error-msg";
-    cont.textContent = "No se pudo interpretar el sueño. Intenta de nuevo.";
+    if (e.status === 429) {
+      cont.textContent = e.message;
+    } else {
+      cont.textContent = e.message || "No se pudo interpretar el sueño. Intenta de nuevo.";
+    }
   }
 }
 
