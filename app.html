@@ -191,6 +191,15 @@ fbq('track', 'PageView');
   .input-wizard::placeholder{color:var(--texto-suave);font-family:var(--sans);font-size:1rem}
   .wizard-nota{font-size:.8rem;color:var(--texto-suave);margin-bottom:1.4rem;line-height:1.5}
 
+  .fila-fecha{display:flex;gap:.6rem;margin-bottom:1.3rem}
+  .select-wizard{
+    flex:1;background:var(--noche);border:1px solid var(--linea);color:var(--marfil);
+    padding:.75rem .3rem;font-size:.92rem;border-radius:6px;font-family:var(--sans);
+    text-align:center;text-align-last:center;transition:border-color .2s;appearance:none;
+    -webkit-appearance:none;
+  }
+  .select-wizard:focus{outline:none;border-color:var(--oro)}
+
   .check-sutil{
     display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--texto-suave);
     margin-bottom:.8rem;cursor:pointer;justify-content:center;
@@ -367,40 +376,27 @@ fbq('track', 'PageView');
     <span class="punto activo" data-paso="0"></span>
     <span class="punto" data-paso="1"></span>
     <span class="punto" data-paso="2"></span>
-    <span class="punto" data-paso="3"></span>
-    <span class="punto" data-paso="4"></span>
   </div>
 
-  <!-- Paso 0: nombre -->
+  <!-- Paso 0: nombre + correo -->
   <div class="paso-wizard activo" data-paso="0">
     <span class="eyebrow centro">Bienvenida</span>
-    <h1 class="wizard-titulo">¿Cómo te llamas?</h1>
+    <h1 class="wizard-titulo">Empecemos</h1>
     <input type="text" id="ob-nombre" class="input-wizard" placeholder="Tu nombre" autocomplete="given-name">
+    <input type="email" id="ob-correo" class="input-wizard" placeholder="tú@correo.com" autocomplete="email">
+    <div id="ob-error" class="error-msg oculto"></div>
     <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(0)">Continuar</button>
   </div>
 
-  <!-- Paso 1: correo -->
+  <!-- Paso 1: fecha + hora -->
   <div class="paso-wizard" data-paso="1">
-    <span class="eyebrow centro">Un gusto, <span id="saludo-nombre">viajera</span></span>
-    <h1 class="wizard-titulo">¿Cuál es tu correo?</h1>
-    <p class="wizard-nota">Así guardamos tu cuenta y tu historial.</p>
-    <input type="email" id="ob-correo" class="input-wizard" placeholder="tú@correo.com" autocomplete="email">
-    <div id="ob-error" class="error-msg oculto"></div>
-    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(1)">Continuar</button>
-  </div>
-
-  <!-- Paso 2: fecha -->
-  <div class="paso-wizard" data-paso="2">
     <span class="eyebrow centro">El cielo lo recuerda</span>
     <h1 class="wizard-titulo">¿Cuándo llegaste al mundo?</h1>
-    <input type="date" id="ob-fecha" class="input-wizard">
-    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(2)">Continuar</button>
-  </div>
-
-  <!-- Paso 3: hora -->
-  <div class="paso-wizard" data-paso="3">
-    <span class="eyebrow centro">Precisión de observatorio</span>
-    <h1 class="wizard-titulo">¿A qué hora naciste?</h1>
+    <div class="fila-fecha">
+      <select id="ob-dia" class="select-wizard"></select>
+      <select id="ob-mes" class="select-wizard"></select>
+      <select id="ob-anio" class="select-wizard"></select>
+    </div>
     <input type="time" id="ob-hora" class="input-wizard">
     <label class="check-sutil">
       <input type="checkbox" id="ob-hora-desconocida" onchange="alternarHoraDesconocida()">
@@ -410,11 +406,11 @@ fbq('track', 'PageView');
       Usaremos el mediodía como aproximación. Tu Sol y numerología seguirán siendo exactos —
       solo tu Ascendente podría variar.
     </p>
-    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(3)">Continuar</button>
+    <button class="btn btn-oro btn-shimmer" onclick="wizardSiguiente(1)">Continuar</button>
   </div>
 
-  <!-- Paso 4: ciudad -->
-  <div class="paso-wizard" data-paso="4">
+  <!-- Paso 2: ciudad -->
+  <div class="paso-wizard" data-paso="2">
     <span class="eyebrow centro">Último paso</span>
     <h1 class="wizard-titulo">¿En qué ciudad naciste?</h1>
     <input type="text" id="ob-ciudad" class="input-wizard" list="lista-ciudades" placeholder="Ej: Medellín">
@@ -695,6 +691,7 @@ async function cargarCiudades() {
   } catch (e) {}
 }
 cargarCiudades();
+poblarSelectsFecha();
 
 // ---------- Wizard de bienvenida ----------
 let wizardPasoActual = 0;
@@ -713,19 +710,12 @@ function wizardIrAPaso(n) {
     p.classList.toggle("activo", idx === n);
     p.classList.toggle("completo", idx < n);
   });
-  const primerInput = document.querySelector('#pantalla-onboarding .paso-wizard[data-paso="' + n + '"] input');
+  const primerInput = document.querySelector('#pantalla-onboarding .paso-wizard[data-paso="' + n + '"] input, #pantalla-onboarding .paso-wizard[data-paso="' + n + '"] select');
   if (primerInput) setTimeout(function() { primerInput.focus(); }, 150);
 }
 
 async function wizardSiguiente(pasoActual) {
   if (pasoActual === 0) {
-    const nombre = document.getElementById("ob-nombre").value.trim();
-    document.getElementById("saludo-nombre").textContent = nombre || "viajera";
-    wizardIrAPaso(1);
-    return;
-  }
-
-  if (pasoActual === 1) {
     const correo = document.getElementById("ob-correo").value.trim();
     const errorEl = document.getElementById("ob-error");
     if (!correo || !correo.includes("@")) {
@@ -735,7 +725,7 @@ async function wizardSiguiente(pasoActual) {
     }
     errorEl.classList.add("oculto");
 
-    const boton = document.querySelector('.paso-wizard[data-paso="1"] button');
+    const boton = document.querySelector('.paso-wizard[data-paso="0"] button');
     boton.disabled = true;
     boton.textContent = "Un momento…";
 
@@ -761,7 +751,7 @@ async function wizardSiguiente(pasoActual) {
       correoEnProceso = correo;
       boton.disabled = false;
       boton.textContent = "Continuar";
-      wizardIrAPaso(2);
+      wizardIrAPaso(1);
     } catch (e) {
       boton.disabled = false;
       boton.textContent = "Continuar";
@@ -771,10 +761,39 @@ async function wizardSiguiente(pasoActual) {
     return;
   }
 
-  if (pasoActual === 2 && !document.getElementById("ob-fecha").value) return;
-  if (pasoActual === 3 && !document.getElementById("ob-hora").value) return;
+  if (pasoActual === 1) {
+    if (!obtenerFechaWizard() || !document.getElementById("ob-hora").value) return;
+    wizardIrAPaso(2);
+  }
+}
 
-  wizardIrAPaso(pasoActual + 1);
+function poblarSelectsFecha() {
+  const selectDia = document.getElementById("ob-dia");
+  const selectMes = document.getElementById("ob-mes");
+  const selectAnio = document.getElementById("ob-anio");
+  if (!selectDia || selectDia.options.length) return; // ya poblados, no repetir
+
+  let opcionesDia = '<option value="">Día</option>';
+  for (let d = 1; d <= 31; d++) opcionesDia += '<option value="' + d + '">' + d + '</option>';
+  selectDia.innerHTML = opcionesDia;
+
+  const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  let opcionesMes = '<option value="">Mes</option>';
+  meses.forEach(function(m, i) { opcionesMes += '<option value="' + (i + 1) + '">' + m + '</option>'; });
+  selectMes.innerHTML = opcionesMes;
+
+  const anioActual = new Date().getFullYear();
+  let opcionesAnio = '<option value="">Año</option>';
+  for (let a = anioActual - 10; a >= anioActual - 100; a--) opcionesAnio += '<option value="' + a + '">' + a + '</option>';
+  selectAnio.innerHTML = opcionesAnio;
+}
+
+function obtenerFechaWizard() {
+  const dia = document.getElementById("ob-dia").value;
+  const mes = document.getElementById("ob-mes").value;
+  const anio = document.getElementById("ob-anio").value;
+  if (!dia || !mes || !anio) return null;
+  return anio + "-" + String(mes).padStart(2, "0") + "-" + String(dia).padStart(2, "0");
 }
 
 function alternarHoraDesconocida() {
@@ -847,7 +866,7 @@ async function verificarCodigoRecuperacion() {
 
     document.getElementById("pantalla-recuperacion").classList.add("oculto");
     document.getElementById("pantalla-onboarding").classList.remove("oculto");
-    wizardIrAPaso(2); // sigue pidiendo fecha/hora/ciudad para completar la sesión
+    wizardIrAPaso(1); // sigue pidiendo fecha/hora/ciudad para completar la sesión
   } catch (e) {
     errorEl.textContent = e.message;
     errorEl.classList.remove("oculto");
@@ -863,16 +882,16 @@ const FRASES_REVELACION = [
 
 async function completarRegistro() {
   const nombre = document.getElementById("ob-nombre").value.trim();
-  const fecha = document.getElementById("ob-fecha").value;
+  const fecha = obtenerFechaWizard();
   const hora = document.getElementById("ob-hora").value;
   const ciudad = document.getElementById("ob-ciudad").value.trim();
 
   if (!tokenActual || !correoEnProceso) {
-    wizardIrAPaso(1);
+    wizardIrAPaso(0);
     return;
   }
   if (!fecha || !hora || !ciudad) {
-    wizardIrAPaso(!fecha ? 2 : !hora ? 3 : 4);
+    wizardIrAPaso(!fecha || !hora ? 1 : 2);
     return;
   }
 
