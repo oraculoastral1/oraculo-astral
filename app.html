@@ -355,6 +355,7 @@ fbq('track', 'PageView');
 </style>
 </head>
 <body>
+<audio id="musica-fondo" src="audio/fondo-meditacion.mp3" loop preload="none"></audio>
 <div class="orbe-ambiente orbe-ambiente-1"></div>
 <div class="orbe-ambiente orbe-ambiente-2"></div>
 
@@ -995,6 +996,22 @@ async function cargarLecturaHoy() {
   }
 }
 
+function fundirVolumen(elemento, objetivo, duracionMs, alTerminar) {
+  const inicio = elemento.volume;
+  const pasos = 20;
+  const intervalo = duracionMs / pasos;
+  let paso = 0;
+  const timer = setInterval(function() {
+    paso++;
+    elemento.volume = Math.max(0, Math.min(1, inicio + (objetivo - inicio) * (paso / pasos)));
+    if (paso >= pasos) {
+      clearInterval(timer);
+      elemento.volume = objetivo;
+      if (alTerminar) alTerminar();
+    }
+  }, intervalo);
+}
+
 async function escucharLecturaHoy() {
   const sesion = obtenerSesion();
   const icono = document.getElementById("btn-escuchar");
@@ -1017,10 +1034,36 @@ async function escucharLecturaHoy() {
     });
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
-    cont.innerHTML = '<audio controls autoplay src="' + url + '"></audio>';
+    cont.innerHTML = '<audio id="audio-narracion" controls autoplay src="' + url + '"></audio>';
     icono.classList.remove("cargando");
     icono.textContent = "♪";
     subtitulo.textContent = "Reproduciendo tu lectura de hoy";
+
+    // Música de fondo suave, sincronizada con la narración —
+    // entra despacio, baja si se pausa la voz, se apaga al terminar
+    const narracion = document.getElementById("audio-narracion");
+    const musica = document.getElementById("musica-fondo");
+    const VOLUMEN_FONDO = 0.22; // deliberadamente bajo — nunca debe competir con la voz
+
+    // Respaldo manual del loop: aunque ya tiene el atributo "loop", algunos
+    // navegadores (sobre todo en celular) no lo respetan de forma confiable
+    // durante autoplay con volumen en fundido — esto garantiza que nunca se corte.
+    musica.onended = function() {
+      musica.currentTime = 0;
+      musica.play().catch(function() {});
+    };
+
+    narracion.addEventListener("play", function() {
+      musica.currentTime = musica.currentTime || 0;
+      musica.play().catch(function() {});
+      fundirVolumen(musica, VOLUMEN_FONDO, 1200);
+    });
+    narracion.addEventListener("pause", function() {
+      fundirVolumen(musica, 0, 500);
+    });
+    narracion.addEventListener("ended", function() {
+      fundirVolumen(musica, 0, 1500, function() { musica.pause(); });
+    });
   } catch (e) {
     icono.classList.remove("cargando");
     icono.textContent = "▶";
