@@ -1040,23 +1040,32 @@ async function escucharLecturaHoy() {
     subtitulo.textContent = "Reproduciendo tu lectura de hoy";
 
     // Música de fondo suave, sincronizada con la narración —
-    // entra despacio, baja si se pausa la voz, se apaga al terminar
+    // entra despacio, baja si se pausa la voz, se apaga al terminar.
+    // IMPORTANTE: se arranca aquí mismo, en el mismo clic del usuario que
+    // disparó esta función — si se espera al evento "play" de la narración
+    // (que dispara el navegador, no la persona), varios navegadores
+    // bloquean el sonido en silencio por su política de autoplay.
     const narracion = document.getElementById("audio-narracion");
     const musica = document.getElementById("musica-fondo");
     const VOLUMEN_FONDO = 0.22; // deliberadamente bajo — nunca debe competir con la voz
 
+    musica.currentTime = 0;
+    musica.volume = 0;
+    musica.play().then(function() {
+      fundirVolumen(musica, VOLUMEN_FONDO, 1200);
+    }).catch(function() {});
+
     // Respaldo manual del loop: aunque ya tiene el atributo "loop", algunos
-    // navegadores (sobre todo en celular) no lo respetan de forma confiable
-    // durante autoplay con volumen en fundido — esto garantiza que nunca se corte.
+    // navegadores (sobre todo en celular) no lo respetan de forma confiable —
+    // esto garantiza que nunca se corte.
     musica.onended = function() {
       musica.currentTime = 0;
       musica.play().catch(function() {});
     };
 
     narracion.addEventListener("play", function() {
-      musica.currentTime = musica.currentTime || 0;
       musica.play().catch(function() {});
-      fundirVolumen(musica, VOLUMEN_FONDO, 1200);
+      fundirVolumen(musica, VOLUMEN_FONDO, 800);
     });
     narracion.addEventListener("pause", function() {
       fundirVolumen(musica, 0, 500);
